@@ -1,0 +1,15 @@
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\bin\Debug\net6.0\OPC_001.exe
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\bin\Debug\net6.0\OPC_001.deps.json
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\bin\Debug\net6.0\OPC_001.runtimeconfig.json
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\bin\Debug\net6.0\OPC_001.dll
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\bin\Debug\net6.0\OPC_001.pdb
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.csproj.AssemblyReference.cache
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.AssemblyInfoInputs.cache
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.AssemblyInfo.cs
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.csproj.CoreCompileInputs.cache
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.dll
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\refint\OPC_001.dll
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.pdb
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\OPC_001.genruntimeconfig.cache
+C:\Users\ryu\OneDrive\Projects\ObjectiveParserCombinator001\obj\Debug\net6.0\ref\OPC_001.dll

@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Text;
-using static System.Net.Mime.MediaTypeNames;
 
 // See https://aka.ms/new-console-template for more information
 
@@ -21,26 +20,59 @@ string text =
 var test = "abcd";
 var a = 'a'._();
 var ab = "ab"._();
-var alphabet = 'a'.To('z')._();
+var alphabet = 'A'.To('Z') | 'a'.To('z');
 var alphabets = alphabet * 1.To(5);
-
-
-var number = '0'.To('9');
+var number = '0'.To('9')._();
 var integer = (number * 1.To(999)).Atom["Integer"];
+
+var identifier = ( alphabet | '_') + (alphabet | number | '_');
 var literal = integer;
 
 var exp = new RecursionMatcher()["Exp"];
-var parenExp = ('(' + exp + ')')["ParenExp"];
 
-var primeOperand = parenExp | literal;
+using (new IgnoreBlank())
+{
+    var parenExp = ('(' + exp + ')')["ParenExp"];
 
-var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDiv"];
-var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSub"];
-var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["Shift"];
+    var primeOperand = parenExp | literal;
 
-exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
+    var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDiv"];
+    var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSub"];
+    var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["Shift"];
 
-Test("1*2+3>>4*5+6>>7>>(8*9)", exp);
+    exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
+    //exp.Inner = MulDivExp | parenExp | literal;
+
+}
+
+//Test("1*2", exp);
+//Test("1  *2", exp);
+//Test("1*  2", exp);
+//Test("1  *  2", exp);
+
+Test("1+2*3>>4+5*6>>7>>(8*9)", exp);
+Test("1  + 2 *  3>> 4  + 5 * 6 >> 7   >> (  8 * 9  )", exp);
+Test("7   >> (  8 * 9  )", exp);
+Test("6 >> 7   >> (  8 * 9  )", exp);
+
+
+Test("6 >> 7   >> (  8  )", exp, 1); // 失敗
+Test("6 >> 7   >>(8)", exp, 3); // 失敗
+Test("6 >> 7   >>8", exp, 4); // 失敗
+Test("6 >> 7>>8", exp, 5); // 失敗
+Test("6 >> 7>> 8", exp, 6); // 失敗
+
+Test("6>>7>>(8)", exp, 2);
+Test("6>> 7>> 8", exp, 7);
+Test("6>>7>> 8", exp, 8);
+Test("7   >>8", exp, 9);
+
+
+Test("6 *7*8", exp, 10); // 失敗
+
+
+//Test("1+2", exp);
+
 
 //Test("(3)", exp, 6, 0, 0);
 

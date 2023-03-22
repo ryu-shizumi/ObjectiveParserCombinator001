@@ -154,11 +154,35 @@ namespace OPC
         /// <param name="a">マッチャー</param>
         /// <param name="b">全てのマッチャー</param>
         /// <returns>マッチャー</returns>
-        public static UnionMatcher operator +(char a, Matcher b)
+        public static UnionMatcher operator +(Matcher a, Matcher b)
         {
-            return new UnionMatcher(a._(), b);
+            if (IgnoreBlank.IsIgnoreBlank())
+            {
+                return new UnionMatcher(a, BlankMatcher.GetInstance(), b);
+            }
+            return new UnionMatcher(a, b);
         }
 
+        /// <summary>
+        /// マッチャーと他のマッチャーを結合させてマッチャーを得る
+        /// </summary>
+        /// <param name="a">マッチャー</param>
+        /// <param name="b">全てのマッチャー</param>
+        /// <returns>マッチャー</returns>
+        public static UnionMatcher operator +(char a, Matcher b)
+        {
+            return a._() + b;
+        }
+        /// <summary>
+        /// マッチャーと他のマッチャーを結合させてマッチャーを得る
+        /// </summary>
+        /// <param name="a">マッチャー</param>
+        /// <param name="b">全てのマッチャー</param>
+        /// <returns>マッチャー</returns>
+        public static UnionMatcher operator +(CharRange a, Matcher b)
+        {
+            return a._() + b;
+        }
         /// <summary>
         /// マッチャーと他のマッチャーを結合させてマッチャーを得る
         /// </summary>
@@ -167,18 +191,7 @@ namespace OPC
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(string a, Matcher b)
         {
-            return new UnionMatcher(a._(), b);
-        }
-
-        /// <summary>
-        /// マッチャーと他のマッチャーを結合させてマッチャーを得る
-        /// </summary>
-        /// <param name="a">マッチャー</param>
-        /// <param name="b">全てのマッチャー</param>
-        /// <returns>マッチャー</returns>
-        public static UnionMatcher operator +(Matcher a, Matcher b)
-        {
-            return new UnionMatcher(a, b);
+            return a._() + b;
         }
 
         /// <summary>
@@ -189,7 +202,17 @@ namespace OPC
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, char b)
         {
-            return new UnionMatcher(a, b._());
+            return a+ b._();
+        }
+        /// <summary>
+        /// マッチャーと他のマッチャーを結合させてマッチャーを得る
+        /// </summary>
+        /// <param name="a">マッチャー</param>
+        /// <param name="b">全てのマッチャー</param>
+        /// <returns>マッチャー</returns>
+        public static UnionMatcher operator +(Matcher a, CharRange b)
+        {
+            return a + b._();
         }
 
         /// <summary>
@@ -200,7 +223,7 @@ namespace OPC
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, string b)
         {
-            return new UnionMatcher(a, b._());
+            return a + b._();
         }
 
         /// <summary>
@@ -295,7 +318,7 @@ namespace OPC
                 return result;
             }
             // 全文字の検査でハジかれなかった時は成功を返す
-            result = new Match(this, tokenIndex, Word.Length);
+            result = new Match(this, tokenIndex, tokenIndex + Word.Length);
             _matchList[tokenIndex, this] = result;
             return result;
         }

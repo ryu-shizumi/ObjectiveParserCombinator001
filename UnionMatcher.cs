@@ -13,13 +13,24 @@ namespace OPC
     /// </summary>
     public class UnionMatcher : Matcher
     {
-        public Matcher[] Inner { get; private set; }
+        public Matcher[] Inners { get; private set; }
+
+        public bool CheckContinuousBlank()
+        {
+            for(int i = 0;i < Inners.Length-1;i++)
+            {
+                if((Inners[i] is BlankMatcher) && (Inners[i+1] is BlankMatcher))
+                { return true; }
+            }
+            return false;
+        }
+
         public UnionMatcher(Matcher left, Matcher right)
         {
             List<Matcher> list = new List<Matcher>();
             if (left is UnionMatcher unionLeft)
             {
-                list.AddRange(unionLeft.Inner);
+                list.AddRange(unionLeft.Inners);
             }
             else
             {
@@ -27,13 +38,41 @@ namespace OPC
             }
             if (right is UnionMatcher unionRight)
             {
-                list.AddRange(unionRight.Inner);
+                list.AddRange(unionRight.Inners);
             }
             else
             {
                 list.Add(right);
             }
-            Inner = list.ToArray();
+            Inners = list.ToArray();
+
+            if(CheckContinuousBlank())
+            {
+                var temp = "";
+            }
+        }
+        public UnionMatcher(params Matcher[] inners)
+        {
+            List<Matcher> list = new List<Matcher>();
+
+            foreach(var inner in inners)
+            {
+                if (inner is UnionMatcher unionLeft)
+                {
+                    list.AddRange(unionLeft.Inners);
+                }
+                else
+                {
+                    list.Add(inner);
+                }
+            }
+
+            Inners = list.ToArray();
+
+            if (CheckContinuousBlank())
+            {
+                var temp = "";
+            }
         }
         private UnionMatcher(Matcher left, Matcher right, string name)
             : this(left, right)
@@ -42,12 +81,24 @@ namespace OPC
         }
         private UnionMatcher(Matcher[] inner, string name)
         {
-            Inner = inner;
+            Inners = inner;
             Name = name;
+
+            if (CheckContinuousBlank())
+            {
+                var temp = "";
+            }
+
         }
 
         public override Match Match(TokenList tokenList, int tokenIndex, string nest)
         {
+            if (UniqID == 37)
+            {
+                var temp = "";
+            }
+
+
             // if (DebugName != "") { Debug.WriteLine(nest + DebugName + "[" + tokenIndex.ToString() + "]"); }
 
             // マッチリストにある時はそれを返す
@@ -57,7 +108,7 @@ namespace OPC
             int nextIndex = tokenIndex;
             Match result;
 
-            foreach (Matcher matcher in Inner)
+            foreach (Matcher matcher in Inners)
             {
                 Match match = matcher.Match(tokenList, nextIndex, nest + "  ");
                 if (match.IsSuccess == false)
@@ -66,8 +117,10 @@ namespace OPC
                     _matchList[tokenIndex, this] = result;
                     return result;
                 }
-                matchList.Add(match);
                 nextIndex += match.TokenCount;
+                if (match is BlankMatch)
+                { continue; }
+                matchList.Add(match);
             }
 
             result = new WrapMatch(this, matchList.ToArray());
@@ -77,7 +130,7 @@ namespace OPC
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            foreach (Matcher matcher in Inner)
+            foreach (Matcher matcher in Inners)
             {
                 matcher.DebugOut(matchers, nest + "  ");
             }
@@ -87,7 +140,7 @@ namespace OPC
         {
             get
             {
-                return new UnionMatcher(Inner, Name);
+                return new UnionMatcher(Inners, Name);
             }
         }
     }

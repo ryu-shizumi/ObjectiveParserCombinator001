@@ -45,7 +45,7 @@ namespace OPC
             }
 
             return new FailMatch(this, tokenIndex);
-            //return Inner.Match(tokenList, tokenIndex);
+            //return Inners.Match(tokenList, tokenIndex);
         }
 
         /// <summary>
@@ -92,19 +92,24 @@ namespace OPC
             // 最低ゼロ回の時は、長さゼロでマッチを作る
             if (Min == 0)
             {
-                var wrap = new Match(this, tokenIndex, 0);
-                //matchList.Add(wrap);
-                //yield return wrap;
+                var wrap = new Match(this, tokenIndex, tokenIndex);
+                // 返信リストに追加する
                 results.Add(wrap);
-
                 isMatchReturned = true;
             }
 
-            int currentIndex = tokenIndex;
+            //int currentIndex = tokenIndex;
+            Stack<int> currentIndex = new Stack<int>();
+            currentIndex.Push(tokenIndex);
 
             List<Match> inners = new List<Match>();
 
-            var enumerator = Inner.EnumMatch(tokenList, currentIndex, nest + "  ").GetEnumerator();
+            if (UniqID == 38)
+            {
+                var temp = "";
+            }
+
+            var enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
             stack.Push(enumerator);
 
             // MoveNext()は水平方向に走査を進める
@@ -118,6 +123,7 @@ namespace OPC
                 var currentMatch = peek.Current;
                 // bool isSuccess = currentMatch.IsSuccess;
 
+
                 // 成功マッチが帰ってきた時（水平方向に進めた時）
                 if ((moveNext) &&
                     (currentMatch != null) && currentMatch.IsSuccess)
@@ -129,9 +135,9 @@ namespace OPC
                     if (stack.Count < Min)
                     {
                         // 次にトークンリストとマッチングするインデックスを追加する
-                        currentIndex += stack.Peek().Current.TokenCount;
+                        currentIndex.Push(stack.Peek().Current.TokenEndIndex);
                         // 次のマッチ列挙子を取得する
-                        enumerator = Inner.EnumMatch(tokenList, currentIndex, nest + "  ").GetEnumerator();
+                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
                         // マッチ列挙子をスタックに押し込む
                         stack.Push(enumerator);
                     }
@@ -139,18 +145,15 @@ namespace OPC
                     else if (stack.Count < Max)
                     {
                         // 次にトークンリストとマッチングするインデックスを追加する
-                        currentIndex += stack.Peek().Current.TokenCount;
+                        currentIndex.Push(stack.Peek().Current.TokenEndIndex);
                         // 次のマッチ列挙子を取得する
-                        enumerator = Inner.EnumMatch(tokenList, currentIndex, nest + "  ").GetEnumerator();
+                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
                         // マッチ列挙子をスタックに押し込む
                         stack.Push(enumerator);
 
                         // ラッパーマッチを作る
                         var wrap = new WrapMatch(this, inners);
-                        // キャッシュに追加する
-                        //matchList.Add(wrap);
-                        // ラッパーマッチを返信する
-                        //yield return wrap;
+                        // 返信リストに追加する
                         results.Add(wrap);
                         // マッチ返信を真にする
                         isMatchReturned = true;
@@ -160,10 +163,7 @@ namespace OPC
                     {
                         // ラッパーマッチを作る
                         var wrap = new WrapMatch(this, inners);
-                        // キャッシュに追加する
-                        //matchList.Add(wrap);
-                        // ラッパーマッチを返信する
-                        //yield return wrap;
+                        // 返信リストに追加する
                         results.Add(wrap);
                         // マッチ返信を真にする
                         isMatchReturned = true;
@@ -178,7 +178,7 @@ namespace OPC
                     if (moveNext)
                     {
                         // 次にトークンリストとマッチングするインデックスから、現在マッチ長さを戻す
-                        currentIndex -= stack.Peek().Current.TokenCount;
+                        currentIndex.Pop();
                     }
                     // 今のマッチ列挙子は使い物にならないので、スタックから抜く
                     stack.Pop();
@@ -189,7 +189,7 @@ namespace OPC
             if (isMatchReturned == false)
             {
                 var fail = new FailMatch(this, tokenIndex);
-                // 失敗マッチを生成してキャッシュに追加する
+                // 失敗マッチを生成して返信リストに追加する
                 results.Add(fail);
 
                 // 失敗マッチを返信する

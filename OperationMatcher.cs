@@ -29,7 +29,17 @@ namespace OPC
 
             var namedOperators = GetObjectAtIndex(operators,"Operator");
 
-            _right = (namedOperators + operand) * 0.To(int.MaxValue);
+            if(IgnoreBlank.IsIgnoreBlank())
+            {
+                _right = new UnionMatcher
+                    (BlankMatcher.Instance , namedOperators , 
+                    BlankMatcher.Instance , operand) * 0.To(int.MaxValue);
+            }
+            else
+            {
+                _right = (namedOperators + operand) * 0.To(int.MaxValue);
+            }
+            
         }
 
         private OperationMatcher(OperationMatcher org, string name)
@@ -86,6 +96,11 @@ namespace OPC
                 WrapMatch wrap = (WrapMatch)inners[i];
                 Match op = wrap.Inners[0];
                 Match right = wrap.Inners[1];
+
+                if(right is BlankMatch)
+                {
+                    right = wrap.Inners[2];
+                }
 
                 left = new OperationMatch(this, left, op, right);
             }

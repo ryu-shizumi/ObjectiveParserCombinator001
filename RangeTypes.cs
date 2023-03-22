@@ -62,5 +62,9 @@ namespace OPC
         {
             return new LongMatcher(new SimpleCharMatcher(a.Min, a.Max), range.Min, range.Max);
         }
+        public static AnyCharMatcher operator |(CharRange a, CharRange b)
+        {
+            return a._() | b._();
+        }
     }
 }

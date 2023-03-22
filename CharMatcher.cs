@@ -24,6 +24,18 @@ namespace OPC
         {
             return a | b._();
         }
+        public static AnyCharMatcher operator |(CharMatcher a, CharRange b)
+        {
+            return a | b._();
+        }
+        public static AnyCharMatcher operator |(char a, CharMatcher b)
+        {
+            return a._() | b;
+        }
+        public static AnyCharMatcher operator |(CharRange a, CharMatcher b)
+        {
+            return a._() | b;
+        }
     }
 
     /// <summary>
@@ -67,14 +79,14 @@ namespace OPC
                 if (_charRange.IsMatch(cToken.Char))
                 {
                     // 正解マッチを作成する
-                    result = new Match(this, tokenIndex, 1);
+                    result = new Match(this, tokenIndex, tokenIndex+1);
                     _matchList[tokenIndex, this] = result;
                     return result;
                 }
             }
 
             // 失敗マッチを作成する
-            result = new FailMatch(this, tokenIndex,1);
+            result = new FailMatch(this, tokenIndex, tokenIndex+1);
             _matchList[tokenIndex, this] = result;
             return result;
         }
@@ -122,7 +134,7 @@ namespace OPC
     }
 
     /// <summary>
-    /// 選択マッチャー
+    /// 選択文字マッチャー
     /// </summary>
     public class AnyCharMatcher : CharMatcher
     {
@@ -151,34 +163,6 @@ namespace OPC
             }
 
             _inners = list.ToArray();
-        }
-        public AnyCharMatcher(CharMatcher[] left, CharMatcher[] right)
-        {
-            List<CharMatcher> list = new ();
-
-            list.AddRange(left);
-            list.AddRange(right);
-
-            _inners = list.ToArray();
-        }
-        public AnyCharMatcher(CharMatcher[] left, CharMatcher right)
-        {
-            List<CharMatcher> list = new();
-
-            list.AddRange(left);
-            list.Add(right);
-
-            _inners = list.ToArray();
-        }
-        public AnyCharMatcher(CharMatcher left, CharMatcher[] right)
-        {
-            List<CharMatcher> list = new();
-
-            list.Add(left);
-            list.AddRange(right);
-
-            _inners = list.ToArray();
-
         }
         private AnyCharMatcher(CharMatcher[] inners, string name)
         {
@@ -218,14 +202,6 @@ namespace OPC
             return result;
         }
 
-        public static AnyCharMatcher operator |(AnyCharMatcher a, AnyCharMatcher b)
-        {
-            return new AnyCharMatcher(a._inners, b._inners);
-        }
-        public static AnyCharMatcher operator |(AnyCharMatcher a, CharMatcher b)
-        {
-            return new AnyCharMatcher(a._inners, b);
-        }
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
@@ -275,7 +251,7 @@ namespace OPC
 
             if(innerResult.IsSuccess)
             {
-                return new FailMatch(this, innerResult.TokenIndex);
+                return new FailMatch(this, innerResult.TokenBeginIndex);
             }
 
             return new WrapMatch(this,innerResult);

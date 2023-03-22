@@ -23,19 +23,33 @@ namespace OPC
         /// <summary>
         /// マッチャーに与えたトークン（トークンリスト内のインデックス）
         /// </summary>
-        public int TokenIndex { get; private set; }
+        public int TokenBeginIndex { get; private set; }
+        public int TokenEndIndex { get; private set; }
 
         /// <summary>
         /// トークン数
         /// </summary>
-        public int TokenCount { get; private set; }
+        public int TokenCount
+        {
+            get { return TokenEndIndex - TokenBeginIndex; }
+        }
 
         public int TextIndex
         {
-            get { return TokenList.Instance[TokenIndex].TextIndex; }
+            get { return TokenList.Instance[TokenBeginIndex].TextIndex; }
         }
-
-        public int TextLength { get; private set; }
+        public int TextEndIndex
+        {
+            get
+            {
+                var token = TokenList.Instance[TokenEndIndex - 1];
+                return token.TextIndex + token.TextLength; 
+            }
+        }
+        public int TextLength
+        {
+            get { return TextEndIndex - TextIndex; }
+        }
 
         public string Name { get; protected set; }
 
@@ -44,88 +58,61 @@ namespace OPC
             Name = name;
         }
 
-        public Match(Matcher generator, int tokenIndex, int tokenCount)
+        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
         {
             Generator = generator;
-            TokenIndex = tokenIndex;
-            TokenCount = tokenCount;
+            TokenBeginIndex = tokenBeginIndex;
+            TokenEndIndex = tokenEndIndex;
             Name = generator.Name;
 
-            var textLength = 0;
-
-            for (int i = 0; i < tokenCount; i++)
-            {
-                textLength += TokenList.Instance[TokenIndex + i].TextLength;
-            }
-            TextLength = textLength;
+            if(TokenCount < 0) { var temp = ""; }
         }
-        public Match(Matcher generator, int tokenIndex, int tokenCount, string name)
+        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name, char c)
         {
             Generator = generator;
-            TokenIndex = tokenIndex;
-            TokenCount = tokenCount;
+            TokenBeginIndex = tokenBeginIndex;
+            TokenEndIndex = tokenEndIndex;
             Name = name;
 
-            var textLength = 0;
-
-            for (int i = 0; i < tokenCount; i++)
-            {
-                textLength += TokenList.Instance[TokenIndex + i].TextLength;
-            }
-            TextLength = textLength;
+            if (TokenCount < 0) { var temp = ""; }
         }
 
         public Match(Matcher generator, Match match)
         {
             Generator = generator;
-            TokenIndex = match.TokenIndex;
-            TokenCount += match.TokenCount;
-            TextLength = match.TextLength;
+            TokenBeginIndex = match.TokenBeginIndex;
+            TokenEndIndex += match.TokenEndIndex;
             Name = generator.Name;
+
+            if (TokenCount < 0) { var temp = ""; }
         }
 
         public Match(Matcher generator, IEnumerable<Match> matches)
         {
             Generator = generator;
-            TokenIndex = -1;
-            TokenCount = 0;
+            TokenBeginIndex = -1;
+            Match? lastMatch = null;
             foreach (var match in matches)
             {
+                lastMatch = match;
                 // 最初のマッチのトークンインデックスは取得しておく
-                if (TokenIndex == -1) { TokenIndex = match.TokenIndex; }
-                TokenCount += match.TokenCount;
+                if (TokenBeginIndex == -1) { TokenBeginIndex = match.TokenBeginIndex; }
             }
-
-            var textLength = 0;
-
-            foreach (var match in matches)
+            if(lastMatch != null)
             {
-                textLength += match.TextLength;
+                TokenEndIndex = lastMatch.TokenEndIndex;
             }
-            TextLength = textLength;
             Name = generator.Name;
+
+            if (TokenCount < 0) { var temp = ""; }
         }
 
         public Match(Matcher generator, IEnumerable<Match> matches, string name)
+            :this(generator,matches)
         {
-            Generator = generator;
-            TokenIndex = -1;
-            TokenCount = 0;
-            foreach (var match in matches)
-            {
-                // 最初のマッチのトークンインデックスは取得しておく
-                if (TokenIndex == -1) { TokenIndex = match.TokenIndex; }
-                TokenCount += match.TokenCount;
-            }
-
-            var textLength = 0;
-
-            foreach (var match in matches)
-            {
-                textLength += match.TextLength;
-            }
-            TextLength = textLength;
             Name = name;
+
+            if (TokenCount < 0) { var temp = ""; }
         }
 
         public Match(Match org, string name)
@@ -166,7 +153,8 @@ namespace OPC
                 name = $" [{Name}]";
             }
 
-            Debug.WriteLine($"{nest}{Detail} {matchName}{name}");
+            //Debug.WriteLine($"{nest}{Detail} {matchName}{name}");
+            Debug.WriteLine($"{nest}{this} {name}");
         }
 
         public virtual Match this[string name]
@@ -180,12 +168,12 @@ namespace OPC
     /// </summary>
     public class FailMatch : Match
     {
-        public FailMatch(Matcher generator, int tokenIndex)
-            : base(generator, tokenIndex, 0) { }
-        public FailMatch(Matcher generator, int tokenIndex, int tokenCount)
-            : base(generator, tokenIndex, tokenCount) { }
-        public FailMatch(Matcher generator, int tokenIndex, int tokenCount, string name)
-            : base(generator, tokenIndex, tokenCount, name) { }
+        public FailMatch(Matcher generator, int tokenBeginIndex)
+            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
+        public FailMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
+            : base(generator, tokenBeginIndex, tokenEndIndex) { }
+        public FailMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name)
+            : base(generator, tokenIndex, tokenEndIndex, name,'c') { }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -202,7 +190,7 @@ namespace OPC
 
         public override Match this[string name]
         {
-            get { return new FailMatch(Generator,TokenIndex,TokenCount, name); }
+            get { return new FailMatch(Generator,TokenBeginIndex,TokenCount, name); }
         }
     }
 
@@ -225,7 +213,7 @@ namespace OPC
     public class SearchingMatch : Match
     {
         public SearchingMatch(Matcher generator, int tokenIndex)
-            : base(generator, tokenIndex, 0) { }
+            : base(generator, tokenIndex, tokenIndex) { }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -326,5 +314,11 @@ namespace OPC
         {
             get { return new OperationMatch(this, name); }
         }
+    }
+
+    public class BlankMatch : Match
+    {
+        public BlankMatch(Matcher generator, int tokenIndex, int tokenEndIndex)
+            : base(generator, tokenIndex, tokenEndIndex) { }
     }
 }
