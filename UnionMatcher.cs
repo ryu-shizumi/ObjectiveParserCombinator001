@@ -91,15 +91,12 @@ namespace OPC
 
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            if (UniqID == 37)
-            {
-                var temp = "";
-            }
-
-
-            // if (DebugName != "") { Debug.WriteLine(nest + DebugName + "[" + tokenIndex.ToString() + "]"); }
+            //if (UniqID == 37)
+            //{
+            //    var temp = "";
+            //}
 
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
@@ -110,7 +107,7 @@ namespace OPC
 
             foreach (Matcher matcher in Inners)
             {
-                Match match = matcher.Match(tokenList, nextIndex, nest + "  ");
+                Match match = matcher.Match(tokenList, nextIndex);
                 if (match.IsSuccess == false)
                 {
                     result = new FailMatch(this, tokenIndex);
@@ -136,6 +133,11 @@ namespace OPC
             }
         }
 
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public UnionMatcher this[string Name]
         {
             get

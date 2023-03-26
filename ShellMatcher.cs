@@ -23,41 +23,38 @@ namespace OPC
             Name = name;
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            // 中身が無い時は例外を吐く
             if (Inner == null) { throw new NullReferenceException(); }
 
-            // if (DebugName != "") { Debug.WriteLine(nest + DebugName + "[" + tokenIndex.ToString() + "]"); }
+            //// マッチリストにある時はそれを返す
+            //if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
 
-            // マッチリストにある時はそれを返す
-            if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // マッチリストにあるか判定する
+            if (_matchList.ContainsKey(tokenIndex, this))
+            {
+                // 走査中に再帰してしまった時
+                if (_matchList[tokenIndex, this] is SearchingMatch)
+                {
+                    var recursionMatch = new InfiniteRecursionMatch(this, tokenIndex);
+                    // 走査中マッチを無限再帰マッチで上書きする
+                    _matchList[tokenIndex, this] = recursionMatch;
 
-            //// マッチリストにあるか判定する
-            //if (_matchList.ContainsKey(tokenIndex, this))
-            //{
-            //    // 走査中に再帰してしまった時
-            //    if (_matchList[tokenIndex, this] is SearchingMatch)
-            //    {
-            //        // if (DebugName != "") { Debug.WriteLine(nest + "Fail " + DebugName); }
-            //        //// 走査中マッチを再帰失敗マッチで上書きする
-            //        //_matchList[tokenIndex, this] = new FailMatch(this, tokenIndex);
+                    // 無限再帰マッチを返す
+                    return recursionMatch;
+                }
 
-            //        // 走査中マッチを削除する
-            //        _matchList.RemoveKey(tokenIndex, this);
-            //        // 失敗マッチを返す
-            //        return new FailMatch(this, tokenIndex);
-            //    }
+                // リストのマッチを返す
+                return _matchList[tokenIndex, this];
+            }
 
-            //    // リストのマッチを返す
-            //    return _matchList[tokenIndex, this];
-            //}
-
-            //// Innerをマッチングさせる前に走査中マッチを設定しておく
-            //_matchList[tokenIndex, this] = new SearchingMatch(this, tokenIndex);
+            // Innerをマッチングさせる前に走査中マッチを設定しておく
+            _matchList[tokenIndex, this] = new SearchingMatch(this, tokenIndex);
 
             Match result;
 
-            var innerResult = Inner.Match(tokenList, tokenIndex, nest + "  ");
+            var innerResult = Inner.Match(tokenList, tokenIndex);
             if (innerResult.IsSuccess)
             {
                 result = new WrapMatch(this, innerResult);
@@ -81,6 +78,11 @@ namespace OPC
                 Inner.DebugOut(matchers, nest + "  ");
             }
         }
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public RecursionMatcher this[string Name]
         {
             get

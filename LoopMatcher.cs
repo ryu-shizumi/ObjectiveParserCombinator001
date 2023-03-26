@@ -35,11 +35,9 @@ namespace OPC
         /// このマッチャーでは他のマッチャーと違い、EnumMatch から最善の１個を返す
         /// 
         /// </returns>
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            // if (DebugName != "") { Debug.WriteLine(nest + DebugName); }
-
-            foreach (var match in EnumMatch(tokenList, tokenIndex, nest + "  "))
+            foreach (var match in EnumMatch(tokenList, tokenIndex))
             {
                 return match;
             }
@@ -63,7 +61,7 @@ namespace OPC
         /// これが IComparable.CompareTo() として使用される。
         /// 
         /// </remarks>
-        public override IEnumerable<Match> EnumMatch(TokenList tokenList, int tokenIndex,string nest)
+        public override IEnumerable<Match> EnumMatch(TokenList tokenList, int tokenIndex)
         {
             LoopMatchResults results;
 
@@ -104,12 +102,12 @@ namespace OPC
 
             List<Match> inners = new List<Match>();
 
-            if (UniqID == 38)
-            {
-                var temp = "";
-            }
+            //if (UniqID == 38)
+            //{
+            //    var temp = "";
+            //}
 
-            var enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
+            var enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek()).GetEnumerator();
             stack.Push(enumerator);
 
             // MoveNext()は水平方向に走査を進める
@@ -123,6 +121,12 @@ namespace OPC
                 var currentMatch = peek.Current;
                 // bool isSuccess = currentMatch.IsSuccess;
 
+                if ((currentMatch != null) && (currentMatch.TextLength == 0))
+                {
+                    var generator = currentMatch.Generator;
+                    var matchID = currentMatch.Generator.UniqID;
+                    var temp = "";
+                }
 
                 // 成功マッチが帰ってきた時（水平方向に進めた時）
                 if ((moveNext) &&
@@ -137,7 +141,7 @@ namespace OPC
                         // 次にトークンリストとマッチングするインデックスを追加する
                         currentIndex.Push(stack.Peek().Current.TokenEndIndex);
                         // 次のマッチ列挙子を取得する
-                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
+                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek()).GetEnumerator();
                         // マッチ列挙子をスタックに押し込む
                         stack.Push(enumerator);
                     }
@@ -147,7 +151,7 @@ namespace OPC
                         // 次にトークンリストとマッチングするインデックスを追加する
                         currentIndex.Push(stack.Peek().Current.TokenEndIndex);
                         // 次のマッチ列挙子を取得する
-                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek(), nest + "  ").GetEnumerator();
+                        enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek()).GetEnumerator();
                         // マッチ列挙子をスタックに押し込む
                         stack.Push(enumerator);
 
@@ -251,6 +255,11 @@ namespace OPC
             return new ShortMatcher(a, a.Min * count, a.Max * count);
         }
 
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public ShortMatcher this[string Name]
         {
             get
@@ -280,6 +289,12 @@ namespace OPC
         {
             return new LongMatcher(a, a.Min * count, a.Max * count);
         }
+
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public LongMatcher this[string Name]
         {
             get

@@ -11,6 +11,9 @@ namespace OPC
     public abstract class CharMatcher : Matcher
     {
 
+        /// <summary>
+        /// この文字マッチャーの否定となるインスタンスを取得する
+        /// </summary>
         public NotCharMatcher Not
         {
             get { return new NotCharMatcher(this); }
@@ -65,7 +68,7 @@ namespace OPC
             Name = name;
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
@@ -124,6 +127,11 @@ namespace OPC
             Debug.WriteLine($"{nest} {sb.ToString()}");
         }
 
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public SimpleCharMatcher this[string Name]
         {
             get
@@ -170,10 +178,8 @@ namespace OPC
             Name = name;
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            // if (DebugName != "") { Debug.WriteLine(nest + DebugName + "[" + tokenIndex.ToString() + "]"); }
-
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
 
@@ -184,7 +190,7 @@ namespace OPC
 
             foreach (var inner in _inners)
             {
-                tempResult = inner.Match(tokenList, currentIndex, nest + "  ");
+                tempResult = inner.Match(tokenList, currentIndex);
                 if (tempResult.IsSuccess)
                 {
                     result = tempResult;// new WrapMatch(this, tempResult);
@@ -197,7 +203,7 @@ namespace OPC
                 }
             }
 
-            result = new FailMatch(this, tokenIndex);
+            result = new FailMatch(this, tokenIndex, tokenIndex + 1);
             _matchList[tokenIndex, this] = result;
             return result;
         }
@@ -211,6 +217,11 @@ namespace OPC
             }
         }
 
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public AnyCharMatcher this[string Name]
         {
             get
@@ -237,29 +248,33 @@ namespace OPC
             Name = name;
         }
 
+        public override Match Match(TokenList tokenList, int tokenIndex)
+        {
+            var innerResult = Inner.Match(tokenList, tokenIndex);
+
+            if(innerResult.IsSuccess)
+            {
+                return new FailMatch(this, innerResult.TokenBeginIndex, innerResult.TokenEndIndex);
+            }
+            return new Match(this,innerResult);
+        }
+
+        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public NotCharMatcher this[string Name]
         {
             get
             {
                 return new NotCharMatcher(Inner, Name);
             }
-        }
-
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
-        {
-            var innerResult = Inner.Match(tokenList, tokenIndex, nest);
-
-            if(innerResult.IsSuccess)
-            {
-                return new FailMatch(this, innerResult.TokenBeginIndex);
-            }
-
-            return new WrapMatch(this,innerResult);
-        }
-
-        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
-        {
-            throw new NotImplementedException();
         }
     }
 }

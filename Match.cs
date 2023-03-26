@@ -29,16 +29,16 @@ namespace OPC
         /// <summary>
         /// トークン数
         /// </summary>
-        public int TokenCount
+        public virtual int TokenCount
         {
             get { return TokenEndIndex - TokenBeginIndex; }
         }
 
-        public int TextIndex
+        public virtual int TextIndex
         {
             get { return TokenList.Instance[TokenBeginIndex].TextIndex; }
         }
-        public int TextEndIndex
+        public virtual int TextEndIndex
         {
             get
             {
@@ -53,7 +53,7 @@ namespace OPC
 
         public string Name { get; protected set; }
 
-        public void SatName(string name)
+        public void SetName(string name)
         {
             Name = name;
         }
@@ -67,7 +67,7 @@ namespace OPC
 
             if(TokenCount < 0) { var temp = ""; }
         }
-        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name, char c)
+        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name)
         {
             Generator = generator;
             TokenBeginIndex = tokenBeginIndex;
@@ -81,7 +81,7 @@ namespace OPC
         {
             Generator = generator;
             TokenBeginIndex = match.TokenBeginIndex;
-            TokenEndIndex += match.TokenEndIndex;
+            TokenEndIndex = match.TokenEndIndex;
             Name = generator.Name;
 
             if (TokenCount < 0) { var temp = ""; }
@@ -173,7 +173,16 @@ namespace OPC
         public FailMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
             : base(generator, tokenBeginIndex, tokenEndIndex) { }
         public FailMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name)
-            : base(generator, tokenIndex, tokenEndIndex, name,'c') { }
+            : base(generator, tokenIndex, tokenEndIndex, name) { }
+
+        public override int TextIndex
+        { get { return -1; } }
+
+        public override int TextEndIndex
+        { get { return -1; } }
+
+        public override int TokenCount
+        { get { return 0; } }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -228,6 +237,28 @@ namespace OPC
             return "(Searching)";
         }
 
+    }
+
+    /// <summary>
+    /// 無限再帰を強引に脱出した時に生成されるマッチ
+    /// </summary>
+    public class InfiniteRecursionMatch : Match
+    {
+        public InfiniteRecursionMatch(Matcher generator, int tokenBeginIndex)
+            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
+
+        public override bool IsSuccess
+        { get { return false; } }
+
+        public override void DebugPrint(string nest = "")
+        {
+            Debug.WriteLine($"{nest}(InfiniteRecursion)");
+        }
+
+        public override string ToString()
+        {
+            return "(InfiniteRecursion)";
+        }
     }
 
     /// <summary>
@@ -318,7 +349,7 @@ namespace OPC
 
     public class BlankMatch : Match
     {
-        public BlankMatch(Matcher generator, int tokenIndex, int tokenEndIndex)
-            : base(generator, tokenIndex, tokenEndIndex) { }
+        public BlankMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
+            : base(generator, tokenBeginIndex, tokenEndIndex) { }
     }
 }

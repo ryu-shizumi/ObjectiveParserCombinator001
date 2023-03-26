@@ -9,21 +9,42 @@ namespace OPC
     /// <summary>
     /// このクラスのインスタンスが存在する間は + 演算で空白を無視するようにする
     /// </summary>
-    public class IgnoreBlank : IDisposable
+    public abstract class IgnoreBlank
     {
+        public static BlankMatcher BlankSpace =
+            new BlankMatcher(((' '._() | '\t') * 0.To(int.MaxValue))["Blank"]);
+        public static BlankMatcher BlankNewLine =
+            new BlankMatcher((('\r'._() | '\n') * 0.To(int.MaxValue))["Blank"]);
+        public static BlankMatcher BlankSpaceNewline =
+            new BlankMatcher(((' '._() | '\t' | ' '._() | '\t') * 0.To(int.MaxValue))["Blank"]);
 
-        internal static Stack<IgnoreBlank> Instances = new Stack<IgnoreBlank>();
-        internal static bool IsIgnoreBlank()
+
+
+        public enum IgnoreStateFlag
         {
-            return Instances.Count > 0;
+            /// <summary>
+            /// 空白・改行を無視しない
+            /// </summary>
+            None = 0,
+            /// <summary>
+            /// 空白のみ無視する
+            /// </summary>
+            IgnoreSpace = 1,
+            /// <summary>
+            /// 改行のみ無視する
+            /// </summary>
+            IgnoreNewline = 2,
+            /// <summary>
+            /// 空白・改行共に無視する
+            /// </summary>
+            IgnoreSpaceNewLine = IgnoreSpace | IgnoreNewline,
         }
-        public IgnoreBlank()
-        {
-            Instances.Push(this);
-        }
-        public void Dispose()
-        {
-            Instances.Pop();
-        }
+
+        /// <summary>
+        /// 空白・改行を無視するか否かを取得・設定します
+        /// </summary>
+        public static IgnoreStateFlag IgnoreState { get; set; } = IgnoreStateFlag.None;
+
+
     }
 }

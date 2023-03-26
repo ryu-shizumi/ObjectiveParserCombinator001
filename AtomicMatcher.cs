@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace OPC_001
 {
+    /// <summary>
+    /// 最小要素として扱うマッチャー
+    /// </summary>
     public class AtomicMatcher : Matcher
     {
         public Matcher Inner { get; private set; }
@@ -21,7 +24,7 @@ namespace OPC_001
             Inner = inner;
             Name = name;
         }
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
             if (Inner == null) { throw new NullReferenceException(); }
 
@@ -30,7 +33,7 @@ namespace OPC_001
 
             Match result;
 
-            var innerResult = Inner.Match(tokenList, tokenIndex, nest + "  ");
+            var innerResult = Inner.Match(tokenList, tokenIndex);
             if (innerResult.IsSuccess)
             {
                 result = new Match(this, innerResult);
@@ -51,6 +54,12 @@ namespace OPC_001
                 Inner.DebugOut(matchers, nest + "  ");
             }
         }
+
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public AtomicMatcher this[string name]
         {
             get { return new AtomicMatcher(Inner, name); }

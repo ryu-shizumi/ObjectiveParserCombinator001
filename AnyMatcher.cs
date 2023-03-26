@@ -61,10 +61,8 @@ namespace OPC
             Name = name;
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            // if (DebugName != "") { Debug.WriteLine(nest + DebugName + "[" + tokenIndex.ToString() + "]"); }
-
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
 
@@ -75,7 +73,7 @@ namespace OPC
 
             foreach (var inner in Inners)
             {
-                tempResult = inner.Match(tokenList, currentIndex, nest + "  ");
+                tempResult = inner.Match(tokenList, currentIndex);
                 if (tempResult.IsSuccess)
                 {
                     result = tempResult; //new WrapMatch(this, tempResult);
@@ -100,6 +98,11 @@ namespace OPC
                 inner.DebugOut(matchers, nest + "  ");
             }
         }
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public AnyMatcher this[string name]
         {
             get { return new AnyMatcher(Inners, name); }

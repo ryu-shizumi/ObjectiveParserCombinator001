@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Text;
+using static OPC.IgnoreBlank;
+using static OPC.IgnoreBlank.IgnoreStateFlag;
 
 // See https://aka.ms/new-console-template for more information
 
@@ -21,54 +23,80 @@ var test = "abcd";
 var a = 'a'._();
 var ab = "ab"._();
 var alphabet = 'A'.To('Z') | 'a'.To('z');
-var alphabets = alphabet * 1.To(5);
+var alphabets = alphabet.Above1.Atom;
 var number = '0'.To('9')._();
-var integer = (number * 1.To(999)).Atom["Integer"];
+var integer = number.Above1.Atom["Integer"];
 
 var identifier = ( alphabet | '_') + (alphabet | number | '_');
-var literal = integer;
 
 var exp = new RecursionMatcher()["Exp"];
 
-using (new IgnoreBlank())
-{
-    var parenExp = ('(' + exp + ')')["ParenExp"];
+// エスケープされた１文字
+var escapedChar = '\\'._() + ('\r'._() | '\n').Not;
+// ダブルクォーテーション
+var doubleQuote = '"'._();
+// ダブルクォーテーション文字列
+var doubleQuotestring = doubleQuote + (escapedChar | (doubleQuote | '\r'._() | '\n').Not).Above0.Atom + doubleQuote;
+// シングルクォーテーション
+var singleQuote = '\''._();
+// シングルクォーテーション文字列
+var singleQuotestring = singleQuote + (escapedChar | (singleQuote | '\r'._() | '\n').Not).Above0.Atom + singleQuote;
 
-    var primeOperand = parenExp | literal;
+// 文字列リテラル
+var stringliteral = doubleQuotestring | singleQuotestring;
 
-    var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDiv"];
-    var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSub"];
-    var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["Shift"];
+IgnoreState = IgnoreSpaceNewLine;
 
-    exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
-    //exp.Inner = MulDivExp | parenExp | literal;
+var parenExp = ('(' + exp + ')')["ParenExp"];
 
-}
+var literal = integer | stringliteral;
 
-//Test("1*2", exp);
-//Test("1  *2", exp);
-//Test("1*  2", exp);
-//Test("1  *  2", exp);
+var primeOperand = parenExp | literal | identifier;
 
-Test("1+2*3>>4+5*6>>7>>(8*9)", exp);
-Test("1  + 2 *  3>> 4  + 5 * 6 >> 7   >> (  8 * 9  )", exp);
-Test("7   >> (  8 * 9  )", exp);
-Test("6 >> 7   >> (  8 * 9  )", exp);
+var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDiv"];
+var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSub"];
+var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["Shift"];
 
+IgnoreState = None;
 
-Test("6 >> 7   >> (  8  )", exp, 1); // 失敗
-Test("6 >> 7   >>(8)", exp, 3); // 失敗
-Test("6 >> 7   >>8", exp, 4); // 失敗
-Test("6 >> 7>>8", exp, 5); // 失敗
-Test("6 >> 7>> 8", exp, 6); // 失敗
-
-Test("6>>7>>(8)", exp, 2);
-Test("6>> 7>> 8", exp, 7);
-Test("6>>7>> 8", exp, 8);
-Test("7   >>8", exp, 9);
+exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
+//exp.Inner = MulDivExp | parenExp | literal;
 
 
-Test("6 *7*8", exp, 10); // 失敗
+//Test("11*22", exp);
+//Test("11  *22", exp);
+//Test("11*  22", exp);
+//Test("11  *  22", exp);
+
+Test("\"1+2*3>>4+5*6>>7\">>(8*9)", exp);
+
+Test("\"1+2*\\\"3>>4+5*6>>7\">>(8*9)", exp);
+
+Test("\"1+2*\"3>>4+5*6>>7\">>(8*9)", exp);
+
+Test("\"1+2*3\">>4+5*6>>7\">>(8*9)", exp);
+
+Test("\"1+2*'3>>4+5*6>>7\">>(8*9)", exp);
+
+//Test("1+2*3>>4+5*6>>7>>(8*9)", exp);
+//Test("1  + 2 *  3>> 4  + 5 * 6 >> 7   >> (  8 * 9  )", exp);
+//Test("7   >> (  8 * 9  )", exp);
+//Test("6 >> 7   >> (  8 * 9  )", exp);
+
+
+//Test("6 >> 7   >> (  8  )", exp, 1); // 失敗
+//Test("6 >> 7   >>(8)", exp, 3); // 失敗
+//Test("6 >> 7   >>8", exp, 4); // 失敗
+//Test("6 >> 7>>8", exp, 5); // 失敗
+//Test("6 >> 7>> 8", exp, 6); // 失敗
+
+//Test("6>>7>>(8)", exp, 2);
+//Test("6>> 7>> 8", exp, 7);
+//Test("6>>7>> 8", exp, 8);
+//Test("7   >>8", exp, 9);
+
+
+//Test("6 *7*8", exp, 10); // 失敗
 
 
 //Test("1+2", exp);

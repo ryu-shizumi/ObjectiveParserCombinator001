@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Enumerator;
 using OPC_001;
+using static OPC.IgnoreBlank;
 
 /// <summary>
 /// 
@@ -71,7 +72,7 @@ namespace OPC
 
             for (int i = 0; i < TokenList.Instance.Count; i++)
             {
-                foreach (var match in EnumMatch(TokenList.Instance, i,""))
+                foreach (var match in EnumMatch(TokenList.Instance, i))
                 {
                     if (match.IsSuccess)
                     {
@@ -89,10 +90,8 @@ namespace OPC
         /// </summary>
         /// <param name="tokenList"></param>
         /// <param name="tokenIndex"></param>
-        /// <param name="tokenList">トークンリスト</param>
-        /// <param name="tokenIndex">トークンリスト内の任意の位置</param>
         /// <returns>マッチしていれば１個のマッチを返す。非マッチならFailMatchを返す</returns>
-        public abstract Match Match(TokenList tokenList, int tokenIndex, string nest);
+        public abstract Match Match(TokenList tokenList, int tokenIndex);
 
         /// <summary>
         /// このマッチャーがトークンリストの任意の位置にマッチするならマッチを１個以上返す
@@ -101,9 +100,9 @@ namespace OPC
         /// <param name="tokenIndex">トークンリスト内の任意の位置</param>
         /// <returns>マッチしていれば１個以上のマッチを返す</returns>
         /// <remarks>回数指定に範囲のあるマッチの場合、何度もマッチを返す可能性がある</remarks>
-        public virtual IEnumerable<Match> EnumMatch(TokenList tokenList, int tokenIndex, string nest)
+        public virtual IEnumerable<Match> EnumMatch(TokenList tokenList, int tokenIndex)
         {
-            var match = Match(tokenList, tokenIndex, nest + "  ");
+            var match = Match(tokenList, tokenIndex);
             if(match.IsSuccess)
             {
                 yield return match;
@@ -156,11 +155,17 @@ namespace OPC
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, Matcher b)
         {
-            if (IgnoreBlank.IsIgnoreBlank())
+            switch (IgnoreState)
             {
-                return new UnionMatcher(a, BlankMatcher.GetInstance(), b);
+            case IgnoreStateFlag.IgnoreSpace:
+                return new UnionMatcher(a, BlankSpace, b);
+            case IgnoreStateFlag.IgnoreNewline:
+                return new UnionMatcher(a, BlankNewLine, b);
+            case IgnoreStateFlag.IgnoreSpaceNewLine:
+                return new UnionMatcher(a, BlankSpaceNewline, b);
+            default:
+                return new UnionMatcher(a, b);
             }
-            return new UnionMatcher(a, b);
         }
 
         /// <summary>
@@ -270,8 +275,26 @@ namespace OPC
 
         public abstract void DebugOut(HashSet<RecursionMatcher> matchers, string nest);
 
+        /// <summary>
+        /// このマッチャーを最小単位として扱うマッチャーを取得します
+        /// </summary>
         public virtual AtomicMatcher Atom
         { get { return new AtomicMatcher(this); } }
+
+        /// <summary>
+        /// このマッチャーを１回以上の繰り返す最長一致マッチャーを取得する
+        /// </summary>
+        public LongMatcher Above1
+        {
+            get { return new LongMatcher(this, 1, int.MaxValue); }
+        }
+        /// <summary>
+        /// このマッチャーを０回以上の繰り返す最長一致マッチャーを取得する
+        /// </summary>
+        public LongMatcher Above0
+        {
+            get { return new LongMatcher(this, 0, int.MaxValue); }
+        }
     }
 
 
@@ -292,7 +315,7 @@ namespace OPC
             Name = name;
         }
 
-        public override Match Match(TokenList tokenList, int tokenIndex, string nest)
+        public override Match Match(TokenList tokenList, int tokenIndex)
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
@@ -345,6 +368,11 @@ namespace OPC
             return a | b._();
         }
 
+        /// <summary>
+        /// このマッチャーに名前を設定したインスタンスを取得する
+        /// </summary>
+        /// <param name="Name">名前</param>
+        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
         public WordMatcher this[string Name]
         {
             get
