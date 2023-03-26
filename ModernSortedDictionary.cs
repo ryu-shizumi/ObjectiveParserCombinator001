@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// コンストラクタに比較関数を指定できる SortedDictionary 派生クラス

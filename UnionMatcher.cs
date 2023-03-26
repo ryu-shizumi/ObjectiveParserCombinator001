@@ -1,4 +1,4 @@
-﻿using OPC;
+﻿using Parspell;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// 連結マッチャー

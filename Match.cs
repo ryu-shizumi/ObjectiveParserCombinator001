@@ -8,7 +8,7 @@ using System.Collections;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// マッチ結果

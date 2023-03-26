@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Enumerator;
 using OPC_001;
-using static OPC.IgnoreBlank;
+using static Parspell.IgnoreBlank;
 
 /// <summary>
 /// 
@@ -38,7 +38,7 @@ using static OPC.IgnoreBlank;
 /// 
 /// </summary>
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// マッチャーの基底クラス

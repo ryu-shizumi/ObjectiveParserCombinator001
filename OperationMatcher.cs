@@ -5,9 +5,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using static OPC.IgnoreBlank;
+using static Parspell.IgnoreBlank;
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// 二項演算に最適化されたマッチャー

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OPC
+namespace Parspell
 {
     /// <summary>
     /// このクラスのインスタンスが存在する間は + 演算で空白を無視するようにする

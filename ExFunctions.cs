@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OPC
+namespace Parspell
 {
     public static  class ExFunctions
     {

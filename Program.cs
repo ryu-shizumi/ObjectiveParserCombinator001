@@ -1,10 +1,10 @@
-﻿using OPC;
+﻿using Parspell;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Text;
-using static OPC.IgnoreBlank;
-using static OPC.IgnoreBlank.IgnoreStateFlag;
+using static Parspell.IgnoreBlank;
+using static Parspell.IgnoreBlank.IgnoreStateFlag;
 
 // See https://aka.ms/new-console-template for more information
 
