@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ryu\\OneDrive\\Projects\\ObjectiveParserCombinator001\\OPC_001.csproj",
-      "projectName": "OPC_001",
-      "projectPath": "C:\\Users\\ryu\\OneDrive\\Projects\\ObjectiveParserCombinator001\\OPC_001.csproj",
+      "projectUniqueName": "C:\\Users\\ryu\\OneDrive\\Projects\\Parspell_001\\Parspell_001.csproj",
+      "projectName": "Parspell_001",
+      "projectPath": "C:\\Users\\ryu\\OneDrive\\Projects\\Parspell_001\\Parspell_001.csproj",
       "packagesPath": "C:\\Users\\ryu\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ryu\\OneDrive\\Projects\\ObjectiveParserCombinator001\\obj\\",
+      "outputPath": "C:\\Users\\ryu\\OneDrive\\Projects\\Parspell_001\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
