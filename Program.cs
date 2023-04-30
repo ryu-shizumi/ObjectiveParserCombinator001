@@ -8,6 +8,32 @@ using static Parspell.IgnoreBlank.IgnoreStateFlag;
 
 // See https://aka.ms/new-console-template for more information
 
+
+//var root = new Indent();
+
+//root.FindNest(2);
+//root.FindNest(4);
+//root.FindNest(2);
+
+//var last = root.LastItem;
+//root.FindNest(0);
+
+
+//root.FindNest(4);
+//root.FindNest(8);
+//root.FindNest(8);
+
+//root.DebugOut();
+
+//last.Rollback();
+//root.DebugOut();
+
+//last.Rollback();
+//root.DebugOut();
+
+
+//return;
+
 string text = 
     "012345\r\n"+
     "6789\r\n"+
@@ -19,45 +45,59 @@ string text =
     "  89\r\n";
 
 
-var test = "abcd";
-var a = 'a'._();
-var ab = "ab"._();
 var alphabet = 'A'.To('Z') | 'a'.To('z');
-var alphabets = alphabet.Above1.Atom;
-var number = '0'.To('9')._();
-var integer = number.Above1.Atom["Integer"];
+var numeric = '0'.To('9')._();
+var integer = numeric.Above1.Atom["Integer"];
 
-var identifier = ( alphabet | '_') + (alphabet | number | '_');
+// 識別子
+var identifier = (( alphabet | '_') + (alphabet | numeric | '_').Above0).Atom["Identifier"];
 
+// 式全般
 var exp = new RecursionMatcher()["Exp"];
 
 // エスケープされた１文字
 var escapedChar = '\\'._() + ('\r'._() | '\n').Not;
 // ダブルクォーテーション
 var doubleQuote = '"'._();
-// ダブルクォーテーション文字列
-var doubleQuotestring = doubleQuote + (escapedChar | (doubleQuote | '\r'._() | '\n').Not).Above0.Atom + doubleQuote;
 // シングルクォーテーション
 var singleQuote = '\''._();
+
+// ダブルクォーテーション文字列
+var doubleQuoteString = doubleQuote + (escapedChar | (doubleQuote | '\r' | '\n').Not).Above0.Atom + doubleQuote;
 // シングルクォーテーション文字列
-var singleQuotestring = singleQuote + (escapedChar | (singleQuote | '\r'._() | '\n').Not).Above0.Atom + singleQuote;
+var singleQuoteString = singleQuote + (escapedChar | (singleQuote | '\r' | '\n').Not).Above0.Atom + singleQuote;
+
+IgnoreState = IgnoreSpaceNewLine;
+
+// フォーマット済み文字列の置換フィールド
+// https://docs.python.org/ja/3/reference/lexical_analysis.html#formatted-string-literals
+var fExp = ('{' + exp + '}')["FExp"];
+
+
+IgnoreState = NoIgnore;
+// ダブルクォーテーション補完文字列
+var doubleQuoteFString = 'f'._() + doubleQuote + (escapedChar | fExp | (doubleQuote | '\r' | '\n').Not).Above0 + doubleQuote;
+// シングルクォーテーション補完文字列
+var singleQuoteFString = 'f'._() + singleQuote + (escapedChar | fExp | (singleQuote | '\r' | '\n').Not).Above0 + singleQuote;
+
 
 // 文字列リテラル
-var stringliteral = doubleQuotestring | singleQuotestring;
+var stringliteral = (doubleQuoteString | singleQuoteString | doubleQuoteFString | singleQuoteFString)["StringLiteral"];
 
 IgnoreState = IgnoreSpaceNewLine;
 
 var parenExp = ('(' + exp + ')')["ParenExp"];
 
+// リテラル全般
 var literal = integer | stringliteral;
 
 var primeOperand = parenExp | literal | identifier;
 
-var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDiv"];
-var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSub"];
-var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["Shift"];
+var MulDivExp = new OperationMatcher(primeOperand, '*'._() | '/' | '%')["MulDivExp"];
+var AddSubExp = new OperationMatcher(MulDivExp, '+'._() | '-')["AddSubExp"];
+var ShiftExp = new OperationMatcher(AddSubExp, ">>"._() | "<<")["ShiftExp"];
 
-IgnoreState = None;
+IgnoreState = NoIgnore;
 
 exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
 //exp.Inner = MulDivExp | parenExp | literal;
@@ -68,7 +108,14 @@ exp.Inner = ShiftExp | AddSubExp | MulDivExp | parenExp | literal;
 //Test("11*  22", exp);
 //Test("11  *  22", exp);
 
-Test("\"1+2*3>>4+5*6>>7\">>(8*9)", exp);
+//Test("\"0\"", exp);
+
+Test("f\"{}1+2*3>>4+5*6>>7\">>(_8*9*_)", exp);
+Test("f\"{}1+2*3>>4+5*6>>7\" >> ( _8 * 9 * _)", exp);
+
+Test("\"1+2*3>>4+5*6>>7\">>(_8*9*_)", exp);
+
+Test("f\"1+2*3>>{4+5}*6>>7\">>(8*9)", exp);
 
 Test("\"1+2*\\\"3>>4+5*6>>7\">>(8*9)", exp);
 

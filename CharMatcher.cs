@@ -11,14 +11,6 @@ namespace Parspell
     public abstract class CharMatcher : Matcher
     {
 
-        /// <summary>
-        /// この文字マッチャーの否定となるインスタンスを取得する
-        /// </summary>
-        public NotCharMatcher Not
-        {
-            get { return new NotCharMatcher(this); }
-        }
-
         public static AnyCharMatcher operator |(CharMatcher a, CharMatcher b)
         {
             return new AnyCharMatcher(a, b);
@@ -72,6 +64,8 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             Match result;
             var token = tokenList[tokenIndex];
@@ -87,6 +81,9 @@ namespace Parspell
                     return result;
                 }
             }
+
+            // マッチ失敗なのでインデントをロールバックする
+            lastNest.Rollback();
 
             // 失敗マッチを作成する
             result = new FailMatch(this, tokenIndex, tokenIndex+1);
@@ -182,6 +179,8 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             Match result;
 
@@ -202,6 +201,9 @@ namespace Parspell
                     return result;
                 }
             }
+
+            // マッチ失敗なのでインデントをロールバックする
+            lastNest.Rollback();
 
             result = new FailMatch(this, tokenIndex, tokenIndex + 1);
             _matchList[tokenIndex, this] = result;
@@ -231,50 +233,66 @@ namespace Parspell
         }
     }
 
-    /// <summary>
-    /// 文字１個の否定と照合するマッチャー
-    /// </summary>
-    public class NotCharMatcher : Matcher
-    {
-        public CharMatcher Inner { get; private set; }
+    ///// <summary>
+    ///// 文字１個の否定と照合するマッチャー
+    ///// </summary>
+    //public class NotCharMatcher : Matcher
+    //{
+    //    public CharMatcher Inner { get; private set; }
 
-        public NotCharMatcher(CharMatcher inner)
-        {
-            Inner = inner;
-        }
-        private NotCharMatcher(CharMatcher inner, string name)
-        {
-            Inner = inner;
-            Name = name;
-        }
+    //    public NotCharMatcher(CharMatcher inner)
+    //    {
+    //        Inner = inner;
+    //    }
+    //    private NotCharMatcher(CharMatcher inner, string name)
+    //    {
+    //        Inner = inner;
+    //        Name = name;
+    //    }
 
-        public override Match Match(TokenList tokenList, int tokenIndex)
-        {
-            var innerResult = Inner.Match(tokenList, tokenIndex);
+    //    public override Match Match(TokenList tokenList, int tokenIndex)
+    //    {
+    //        // マッチリストにある時はそれを返す
+    //        if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+    //        // インデントのロールバックに備えて現在値を取得しておく
+    //        var lastNest = Nest.Root.LastItem;
 
-            if(innerResult.IsSuccess)
-            {
-                return new FailMatch(this, innerResult.TokenBeginIndex, innerResult.TokenEndIndex);
-            }
-            return new Match(this,innerResult);
-        }
+    //        Match result;
 
-        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
-        {
-            throw new NotImplementedException();
-        }
+    //        var innerResult = Inner.Match(tokenList, tokenIndex);
 
-        /// <summary>
-        /// このマッチャーに名前を設定したインスタンスを取得する
-        /// </summary>
-        /// <param name="Name">名前</param>
-        /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public NotCharMatcher this[string Name]
-        {
-            get
-            {
-                return new NotCharMatcher(Inner, Name);
-            }
-        }
-    }
+    //        if(innerResult.IsSuccess)
+    //        {
+    //            // マッチ失敗なのでインデントをロールバックする
+    //            lastNest.Rollback();
+
+    //            // 失敗マッチを作成する
+    //            result = new FailMatch(this, innerResult.TokenBeginIndex, innerResult.TokenEndIndex);
+    //            _matchList[tokenIndex, this] = result;
+    //            return result;
+
+    //        }
+    //        result = new Match(this, innerResult);
+    //        _matchList[tokenIndex, this] = result;
+    //        return result;
+    //    }
+
+    //    public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+
+    //    /// <summary>
+    //    /// このマッチャーに名前を設定したインスタンスを取得する
+    //    /// </summary>
+    //    /// <param name="Name">名前</param>
+    //    /// <returns>このマッチャーに名前を設定したインスタンス</returns>
+    //    public NotCharMatcher this[string Name]
+    //    {
+    //        get
+    //        {
+    //            return new NotCharMatcher(Inner, Name);
+    //        }
+    //    }
+    //}
 }

@@ -1,29 +1,38 @@
-﻿using Parspell;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OPC_001
+namespace Parspell
 {
     /// <summary>
-    /// 最小要素として扱うマッチャー
+    /// 先読みマッチャー
     /// </summary>
-    public class AtomicMatcher : Matcher
+    public class LookaheadMatcher : Matcher
     {
         public Matcher Inner { get; private set; }
 
-        public AtomicMatcher(Matcher inner, string name = "")
+        public LookaheadMatcher(Matcher inner, string name = "")
         {
             Inner = inner;
             Name = name;
         }
+
+        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// マッチしていれば長さゼロのマッチオブジェクトを返す
+        /// </summary>
+        /// <param name="tokenList"></param>
+        /// <param name="tokenIndex"></param>
+        /// <returns></returns>
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            if (Inner == null) { throw new NullReferenceException(); }
-
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -31,10 +40,12 @@ namespace OPC_001
 
             Match result;
 
-            var innerResult = Inner.Match(tokenList, tokenIndex);
+            int currentIndex = tokenIndex;
+            Match innerResult = Inner.Match(tokenList, currentIndex);
+
             if (innerResult.IsSuccess)
             {
-                result = new Match(this, innerResult);
+                result = new LookaheadMatch(this, innerResult.TokenBeginIndex, Name);
                 _matchList[tokenIndex, this] = result;
                 return result;
             }
@@ -46,24 +57,15 @@ namespace OPC_001
             _matchList[tokenIndex, this] = result;
             return result;
         }
-        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
-        {
-            Debug.WriteLine(nest + Name + " (" + ClassName + ")");
-
-            if (Inner != null)
-            {
-                Inner.DebugOut(matchers, nest + "  ");
-            }
-        }
 
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public AtomicMatcher this[string name]
+        public LookaheadMatcher this[string name]
         {
-            get { return new AtomicMatcher(Inner, name); }
+            get { return new LookaheadMatcher(Inner, name); }
         }
     }
 }

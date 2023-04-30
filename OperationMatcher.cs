@@ -65,12 +65,17 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             Match result;
             var leftResult = _left.Match(tokenList, tokenIndex);
 
             if (leftResult.IsSuccess == false)
             {
+                // マッチ失敗なのでインデントをロールバックする
+                lastNest.Rollback();
+
                 result = new FailMatch(this, tokenIndex);
                 _matchList[tokenIndex, this] = result;
                 return result;
@@ -80,6 +85,9 @@ namespace Parspell
 
             if (rightResult.IsSuccess == false)
             {
+                // マッチ失敗なのでインデントをロールバックする
+                lastNest.Rollback();
+
                 result = new FailMatch(this, tokenIndex);
                 _matchList[tokenIndex, this] = result;
                 return result;
@@ -140,7 +148,6 @@ namespace Parspell
             if (matcher is AnyMatcher any) { return any[name]; }
             if (matcher is AnyCharMatcher ac) { return ac[name]; }
             if (matcher is SimpleCharMatcher sc) { return sc[name]; }
-            if (matcher is NotCharMatcher nc) { return nc[name]; }
             if (matcher is ShortMatcher sht) { return sht[name]; }
             if (matcher is LongMatcher l) { return l[name]; }
             if (matcher is AtomicMatcher atom) { return atom[name]; }

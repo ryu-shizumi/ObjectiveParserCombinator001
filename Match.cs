@@ -53,41 +53,27 @@ namespace Parspell
 
         public string Name { get; protected set; }
 
-        public void SetName(string name)
-        {
-            Name = name;
-        }
-
-        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
+        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name = "")
         {
             Generator = generator;
             TokenBeginIndex = tokenBeginIndex;
             TokenEndIndex = tokenEndIndex;
-            Name = generator.Name;
-
-            if(TokenCount < 0) { var temp = ""; }
-        }
-        public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name)
-        {
-            Generator = generator;
-            TokenBeginIndex = tokenBeginIndex;
-            TokenEndIndex = tokenEndIndex;
-            Name = name;
+            Name = (name != "") ? name : generator.Name;
 
             if (TokenCount < 0) { var temp = ""; }
         }
 
-        public Match(Matcher generator, Match match)
+        public Match(Matcher generator, Match match, string name = "")
         {
             Generator = generator;
             TokenBeginIndex = match.TokenBeginIndex;
             TokenEndIndex = match.TokenEndIndex;
-            Name = generator.Name;
+            Name = (name != "") ? name : generator.Name;
 
             if (TokenCount < 0) { var temp = ""; }
         }
 
-        public Match(Matcher generator, IEnumerable<Match> matches)
+        public Match(Matcher generator, IEnumerable<Match> matches, string name = "")
         {
             Generator = generator;
             TokenBeginIndex = -1;
@@ -102,24 +88,13 @@ namespace Parspell
             {
                 TokenEndIndex = lastMatch.TokenEndIndex;
             }
-            Name = generator.Name;
+            Name = (name != "") ? name : generator.Name;
 
             if (TokenCount < 0) { var temp = ""; }
         }
 
-        public Match(Matcher generator, IEnumerable<Match> matches, string name)
-            :this(generator,matches)
-        {
-            Name = name;
-
-            if (TokenCount < 0) { var temp = ""; }
-        }
-
-        public Match(Match org, string name)
-            : this(org.Generator, org)
-        {
-            Name = name;
-        }
+        private Match(Match org, string name)
+            : this(org.Generator, org, name) { }
 
         public virtual bool IsSuccess
         { get { return true; } }
@@ -174,6 +149,8 @@ namespace Parspell
             : base(generator, tokenBeginIndex, tokenEndIndex) { }
         public FailMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name)
             : base(generator, tokenIndex, tokenEndIndex, name) { }
+        public FailMatch(Matcher generator, Match match, string name = "")
+            : base(generator, match, name) { }
 
         public override int TextIndex
         { get { return -1; } }
@@ -294,6 +271,11 @@ namespace Parspell
         {
             _inners = inners;
         }
+        public WrapMatch(Matcher generator, Match inner, string name)
+            : base(generator, inner.TokenBeginIndex, inner.TokenEndIndex, name)
+        {
+            _inners = new Match[] { inner };
+        }
 
         public override void DebugPrint(string nest = "")
         {
@@ -307,6 +289,15 @@ namespace Parspell
         {
             get { return new WrapMatch(Generator, _inners, name); }
         }
+    }
+
+    /// <summary>
+    /// 構文エラーマッチ
+    /// </summary>
+    public class ErrorMatch : WrapMatch
+    {
+        public ErrorMatch(Matcher generator, Match inner)
+            : base(generator, inner) { }
     }
 
     /// <summary>
@@ -347,9 +338,26 @@ namespace Parspell
         }
     }
 
+    /// <summary>
+    /// 空白マッチ
+    /// </summary>
+    /// <remarks>
+    /// 無視できる空白を抽象構文木から除外し易くする為に、最初から空白マッチとしてヒットさせておく
+    /// </remarks>
     public class BlankMatch : Match
     {
         public BlankMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
             : base(generator, tokenBeginIndex, tokenEndIndex) { }
+    }
+
+    /// <summary>
+    /// 先読みマッチ
+    /// </summary>
+    public class LookaheadMatch : Match
+    {
+        public LookaheadMatch(Matcher generator, int tokenBeginIndex)
+            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
+        public LookaheadMatch(Matcher generator, int tokenBeginIndex, string name)
+            : base(generator, tokenBeginIndex, tokenBeginIndex,name) { }
     }
 }

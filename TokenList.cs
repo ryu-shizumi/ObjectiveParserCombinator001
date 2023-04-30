@@ -11,6 +11,10 @@ namespace Parspell
     {
         public static TokenList Instance;
 
+        private void Add(int index)
+        {
+            Add(new TokenChar(index));
+        }
 
         public TokenList(string text)
             :base()
@@ -36,8 +40,10 @@ namespace Parspell
                     // ネストがあればトークン化して追加する
                     if (line.Indent > 0)
                     {
-                        var spaces = new TokenSpaces(line.Start, line.Indent);
-                        Add(spaces);
+                        for(int i = line.Start; i < line.Start + line.Indent; i++)
+                        {
+                            Add(i);
+                        }
                     }
 
                     // 同じ深さの時
@@ -109,8 +115,10 @@ namespace Parspell
                 // 改行をトークン化する
                 if (line.NewlineLength != 0)
                 {
-                    var newLine = new TokenNewline(line.End, line.NewlineLength);
-                    Add(newLine);
+                    for (int i = line.End; i < line.End + line.NewlineLength; i++)
+                    {
+                        Add(i);
+                    }
                 }
 
             }

@@ -24,24 +24,29 @@ namespace Parspell
         {
             List<Matcher> list = new List<Matcher>();
 
-            if (left is IAnyMatcher anyLeft)
+            // 名無しのAnyMatcherはバラして中身を取り出す
+            if ((left.Name == "") && (left is IAnyMatcher anyLeft))
             {
                 foreach (var item in anyLeft.Inners)
                 {
                     list.Add(item);
                 }
             }
+            // AnyMatcher以外、または名前持ちのAnyMatcherは単独扱いする
             else
             {
                 list.Add(left);
             }
-            if (right is IAnyMatcher anyRight)
+
+            // 名無しのAnyMatcherはバラして中身を取り出す
+            if ((right.Name == "") &&(right is IAnyMatcher anyRight))
             {
                 foreach (var item in anyRight.Inners)
                 {
                     list.Add(item);
                 }
             }
+            // AnyMatcher以外、または名前持ちのAnyMatcherは単独扱いする
             else
             {
                 list.Add(right);
@@ -50,12 +55,8 @@ namespace Parspell
 
             Inners = list.ToArray();
         }
-        internal AnyMatcher(Matcher[] inners)
-        {
-            Inners = inners;
-        }
 
-        internal AnyMatcher(Matcher[] inners, string name)
+        internal AnyMatcher(Matcher[] inners, string name = "")
         {
             Inners = inners;
             Name = name;
@@ -65,6 +66,8 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             Match result;
 
@@ -76,15 +79,33 @@ namespace Parspell
                 tempResult = inner.Match(tokenList, currentIndex);
                 if (tempResult.IsSuccess)
                 {
-                    result = tempResult; //new WrapMatch(this, tempResult);
-                    if(Name != "")
+                    // このマッチャーに名前がある時
+                    if (Name != "")
                     {
-                        result = tempResult[Name];
+                        // 上がってきたマッチにも名前がある時
+                        if(tempResult.Name != "")
+                        {
+                            // 名前を付けながらラップする
+                            result = new WrapMatch(this, tempResult, Name);
+                        }
+                        // 上がってきたマッチに名前が無い時
+                        else
+                        {
+                            // 上がってきたマッチに名前を付ける
+                            result = tempResult[Name];
+                        }
+                    }
+                    else
+                    {
+                        // 上がってきたマッチをそのまま返信する
+                        result = tempResult;
                     }
                     _matchList[tokenIndex, this] = result;
                     return result;
                 }
             }
+            // マッチ失敗なのでインデントをロールバックする
+            lastNest.Rollback();
 
             result = new FailMatch(this, tokenIndex);
             _matchList[tokenIndex, this] = result;

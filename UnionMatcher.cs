@@ -15,47 +15,25 @@ namespace Parspell
     {
         public Matcher[] Inners { get; private set; }
 
+        /// <summary>
+        /// ブランクマッチャーの連続が存在するかを判定するデバッグ用メソッド
+        /// </summary>
+        /// <returns></returns>
         public bool CheckContinuousBlank()
         {
-            for(int i = 0;i < Inners.Length-1;i++)
+            for (int i = 0; i < Inners.Length - 1; i++)
             {
-                if((Inners[i] is BlankMatcher) && (Inners[i+1] is BlankMatcher))
+                if ((Inners[i] is BlankMatcher) && (Inners[i + 1] is BlankMatcher))
                 { return true; }
             }
             return false;
         }
 
-        public UnionMatcher(Matcher left, Matcher right)
-        {
-            List<Matcher> list = new List<Matcher>();
-            if (left is UnionMatcher unionLeft)
-            {
-                list.AddRange(unionLeft.Inners);
-            }
-            else
-            {
-                list.Add(left);
-            }
-            if (right is UnionMatcher unionRight)
-            {
-                list.AddRange(unionRight.Inners);
-            }
-            else
-            {
-                list.Add(right);
-            }
-            Inners = list.ToArray();
-
-            if(CheckContinuousBlank())
-            {
-                var temp = "";
-            }
-        }
-        public UnionMatcher(params Matcher[] inners)
+        private UnionMatcher(string name, params Matcher[] inners)
         {
             List<Matcher> list = new List<Matcher>();
 
-            foreach(var inner in inners)
+            foreach (var inner in inners)
             {
                 if (inner is UnionMatcher unionLeft)
                 {
@@ -68,38 +46,24 @@ namespace Parspell
             }
 
             Inners = list.ToArray();
-
-            if (CheckContinuousBlank())
-            {
-                var temp = "";
-            }
-        }
-        private UnionMatcher(Matcher left, Matcher right, string name)
-            : this(left, right)
-        {
             Name = name;
         }
-        private UnionMatcher(Matcher[] inner, string name)
-        {
-            Inners = inner;
-            Name = name;
 
-            if (CheckContinuousBlank())
-            {
-                var temp = "";
-            }
+        public UnionMatcher(Matcher left, Matcher right, string name = "")
+            : this(name, left, right) { }
 
-        }
+        public UnionMatcher(Matcher a, Matcher b,Matcher c, string name = "")
+            : this(name, a, b, c) { }
+
+        public UnionMatcher(params Matcher[] inners)
+            : this("", inners) { }
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            //if (UniqID == 37)
-            //{
-            //    var temp = "";
-            //}
-
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             List<Match> matchList = new List<Match>();
             int nextIndex = tokenIndex;
@@ -110,6 +74,9 @@ namespace Parspell
                 Match match = matcher.Match(tokenList, nextIndex);
                 if (match.IsSuccess == false)
                 {
+                    // マッチ失敗なのでインデントをロールバックする
+                    lastNest.Rollback();
+
                     result = new FailMatch(this, tokenIndex);
                     _matchList[tokenIndex, this] = result;
                     return result;
@@ -119,6 +86,7 @@ namespace Parspell
                 { continue; }
                 matchList.Add(match);
             }
+
 
             result = new WrapMatch(this, matchList.ToArray());
             _matchList[tokenIndex, this] = result;
@@ -142,7 +110,7 @@ namespace Parspell
         {
             get
             {
-                return new UnionMatcher(Inners, Name);
+                return new UnionMatcher(Name, Inners);
             }
         }
     }

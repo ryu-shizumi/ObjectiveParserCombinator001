@@ -18,11 +18,12 @@ namespace Parspell
 
         public abstract Func<int, int, int> SortOrderFunc { get; protected set; }
 
-        public LoopMatcher_Base(Matcher inner, int min, int max)
+        public LoopMatcher_Base(Matcher inner, int min, int max, string name = "")
         {
             Inner = inner;
             Min = min;
             Max = max;
+            Name = name;
         }
 
         /// <summary>
@@ -42,8 +43,9 @@ namespace Parspell
                 return match;
             }
 
+            // ホントはこの一文は実行されないが、
+            // 無いとコンパイラに怒られるので書いておく
             return new FailMatch(this, tokenIndex);
-            //return Inners.Match(tokenList, tokenIndex);
         }
 
         /// <summary>
@@ -82,6 +84,9 @@ namespace Parspell
                 results = new LoopMatchResults(SortOrderFunc);
                 _matchLoopList[tokenIndex, this] = results;
             }
+
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             bool isMatchReturned = false;
 
@@ -192,6 +197,9 @@ namespace Parspell
             // 一つも返せてない時は
             if (isMatchReturned == false)
             {
+                // マッチ失敗なのでインデントをロールバックする
+                lastNest.Rollback();
+
                 var fail = new FailMatch(this, tokenIndex);
                 // 失敗マッチを生成して返信リストに追加する
                 results.Add(fail);

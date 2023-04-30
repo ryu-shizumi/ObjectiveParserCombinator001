@@ -51,7 +51,7 @@ namespace Parspell
     /// </summary>
     public class TokenChar : Token
     {
-        protected TokenChar(int charIndex)
+        internal TokenChar(int charIndex)
             : base(charIndex)
         {
         }

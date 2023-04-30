@@ -155,6 +155,11 @@ namespace Parspell
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, Matcher b)
         {
+            if(a.UniqID == 68)
+            {
+                var temp = "";
+            }
+
             switch (IgnoreState)
             {
             case IgnoreStateFlag.IgnoreSpace:
@@ -207,7 +212,7 @@ namespace Parspell
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, char b)
         {
-            return a+ b._();
+            return a + b._();
         }
         /// <summary>
         /// マッチャーと他のマッチャーを結合させてマッチャーを得る
@@ -276,6 +281,14 @@ namespace Parspell
         public abstract void DebugOut(HashSet<RecursionMatcher> matchers, string nest);
 
         /// <summary>
+        /// このマッチャーの否定となるインスタンスを取得する
+        /// </summary>
+        public NotMatcher Not
+        {
+            get { return new NotMatcher(this); }
+        }
+
+        /// <summary>
         /// このマッチャーを最小単位として扱うマッチャーを取得します
         /// </summary>
         public virtual AtomicMatcher Atom
@@ -295,6 +308,16 @@ namespace Parspell
         {
             get { return new LongMatcher(this, 0, int.MaxValue); }
         }
+
+        public override string ToString()
+        {
+            if(Name != "")
+            {
+                return Name;
+            }
+
+            return base.ToString();
+        }
     }
 
 
@@ -305,11 +328,7 @@ namespace Parspell
     {
         public string Word { get; private set; }
 
-        public WordMatcher(string word)
-        {
-            Word = word;
-        }
-        private WordMatcher(string word, string name)
+        internal WordMatcher(string word, string name = "")
         {
             Word = word;
             Name = name;
@@ -319,6 +338,9 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             Match result;
             int innersCount = 0;
@@ -335,6 +357,8 @@ namespace Parspell
                         continue;
                     }
                 }
+                // マッチ失敗なのでインデントをロールバックする
+                lastNest.Rollback();
 
                 result = new FailMatch(this, tokenIndex);
                 _matchList[tokenIndex, this] = result;
@@ -399,16 +423,31 @@ namespace Parspell
             return new CharRange(min, max);
         }
 
+        /// <summary>
+        /// この文字を文字マッチャーに変換する
+        /// </summary>
+        /// <param name="c">文字</param>
+        /// <returns>文字マッチャー</returns>
         public static SimpleCharMatcher _(this char c)
         {
             return new SimpleCharMatcher(c);
         }
 
+        /// <summary>
+        /// この単語を単語マッチャーに変換する
+        /// </summary>
+        /// <param name="word">単語</param>
+        /// <returns>単語マッチャー</returns>
         public static WordMatcher _(this string word)
         {
             return new WordMatcher(word);
         }
 
+        /// <summary>
+        /// この文字範囲を文字マッチャーに変換する
+        /// </summary>
+        /// <param name="charRange">文字範囲</param>
+        /// <returns>文字マッチャー</returns>
         public static SimpleCharMatcher _(this CharRange charRange)
         {
             return new SimpleCharMatcher(charRange);

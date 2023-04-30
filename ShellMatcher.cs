@@ -52,6 +52,9 @@ namespace Parspell
             // Innerをマッチングさせる前に走査中マッチを設定しておく
             _matchList[tokenIndex, this] = new SearchingMatch(this, tokenIndex);
 
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
+
             Match result;
 
             var innerResult = Inner.Match(tokenList, tokenIndex);
@@ -61,6 +64,9 @@ namespace Parspell
                 _matchList[tokenIndex, this] = result;
                 return result;
             }
+
+            // マッチ失敗なのでインデントをロールバックする
+            lastNest.Rollback();
 
             result = new FailMatch(this, tokenIndex);
             _matchList[tokenIndex, this] = result;

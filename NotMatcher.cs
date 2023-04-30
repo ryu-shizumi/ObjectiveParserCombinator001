@@ -1,29 +1,39 @@
 ﻿using Parspell;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
-namespace OPC_001
+namespace Parspell
 {
     /// <summary>
-    /// 最小要素として扱うマッチャー
+    /// 否定マッチャー
     /// </summary>
-    public class AtomicMatcher : Matcher
+    public class NotMatcher : Matcher
     {
         public Matcher Inner { get; private set; }
 
-        public AtomicMatcher(Matcher inner, string name = "")
+        public NotMatcher(Matcher inner, string name = "")
         {
             Inner = inner;
             Name = name;
         }
+
+        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 内包要素が非マッチを返した時に同じ長さのマッチを返す
+        /// </summary>
+        /// <param name="tokenList"></param>
+        /// <param name="tokenIndex"></param>
+        /// <returns></returns>
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            if (Inner == null) { throw new NullReferenceException(); }
-
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -31,10 +41,12 @@ namespace OPC_001
 
             Match result;
 
-            var innerResult = Inner.Match(tokenList, tokenIndex);
-            if (innerResult.IsSuccess)
+            int currentIndex = tokenIndex;
+            Match innerResult = Inner.Match(tokenList, currentIndex);
+
+            if (innerResult.IsSuccess == false)
             {
-                result = new Match(this, innerResult);
+                result = new Match(this, innerResult, Name);
                 _matchList[tokenIndex, this] = result;
                 return result;
             }
@@ -42,18 +54,9 @@ namespace OPC_001
             // マッチ失敗なのでインデントをロールバックする
             lastNest.Rollback();
 
-            result = new FailMatch(this, tokenIndex);
+            result = new FailMatch(this, innerResult);
             _matchList[tokenIndex, this] = result;
             return result;
-        }
-        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
-        {
-            Debug.WriteLine(nest + Name + " (" + ClassName + ")");
-
-            if (Inner != null)
-            {
-                Inner.DebugOut(matchers, nest + "  ");
-            }
         }
 
         /// <summary>
@@ -61,9 +64,9 @@ namespace OPC_001
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public AtomicMatcher this[string name]
+        public NotMatcher this[string name]
         {
-            get { return new AtomicMatcher(Inner, name); }
+            get { return new NotMatcher(Inner, name); }
         }
     }
 }

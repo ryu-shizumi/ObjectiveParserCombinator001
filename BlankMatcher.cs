@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Parspell
 {
+    /// <summary>
+    /// 空白などを無視する時の専用マッチャー
+    /// </summary>
     public class BlankMatcher : Matcher
     {
         private Matcher _inner;
@@ -24,12 +27,22 @@ namespace Parspell
         {
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
+            // インデントのロールバックに備えて現在値を取得しておく
+            var lastNest = Nest.Root.LastItem;
 
             List<Match> matchList = new List<Match>();
             int nextIndex = tokenIndex;
             Match result;
 
             Match match = _inner.Match(tokenList, nextIndex);
+
+            if(match.IsSuccess == false)
+            {
+                // マッチ失敗なのでインデントをロールバックする
+                lastNest.Rollback();
+            }
+
+            // 空白マッチを作る
             result = new BlankMatch(this, match.TokenBeginIndex, match.TokenBeginIndex + match.TokenCount);
             _matchList[tokenIndex, this] = result;
             return result;
