@@ -13,18 +13,47 @@ namespace Parspell
     /// </summary>
     public class RecursionMatcher : Matcher
     {
-        public Matcher? Inner { get; set; } = null;
+        public Matcher? Inner
+        {
+            get
+            {
+                return _inneWraper.Inner;
+            }
+            set
+            {
+                if(value.UniqID == 110)
+                {
+                    var temp = "";
+                }
+
+                _inneWraper.Inner = value;
+            }
+        }
+
+        private InnerWraper _inneWraper = new InnerWraper();
+
+        public class InnerWraper
+        {
+            public Matcher? Inner { get; set; } = null;
+        }
 
         public RecursionMatcher() { }
 
-        private RecursionMatcher(Matcher inner, string name)
+        private RecursionMatcher(InnerWraper innerWraper, string name)
         {
-            Inner = inner;
+            _inneWraper = innerWraper;
             Name = name;
         }
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            if (UniqID == 66)
+            {
+                var temp = "";
+            }
+
+
+
             // 中身が無い時は例外を吐く
             if (Inner == null) { throw new NullReferenceException(); }
 
@@ -87,13 +116,13 @@ namespace Parspell
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public RecursionMatcher this[string Name]
+        public new RecursionMatcher this[string name]
         {
             get
             {
-                return new RecursionMatcher(Inner, Name);
+                return new RecursionMatcher(_inneWraper, name);
             }
         }
 

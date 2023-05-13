@@ -1,7 +1,9 @@
 ﻿using Parspell;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -23,7 +25,13 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            throw new NotImplementedException();
+            Debug.WriteLine($"{nest}{this}");
+            Inner.DebugOut(matchers, nest + "  ");
+        }
+
+        public override string ToString()
+        {
+            return $"({Inner}).Not";
         }
 
         /// <summary>
@@ -64,7 +72,7 @@ namespace Parspell
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public NotMatcher this[string name]
+        public new NotMatcher this[string name]
         {
             get { return new NotMatcher(Inner, name); }
         }

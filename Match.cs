@@ -16,6 +16,17 @@ namespace Parspell
     public class Match
     {
         /// <summary>
+        /// デバッグ用のUniqIDを与える為のインスタンス数カウンタ
+        /// </summary>
+        private static int _count = 0;
+
+        public int UniqID { get; private set; }
+
+        protected Match()
+        {
+            UniqID = _count++;
+        }
+        /// <summary>
         /// このマッチを生成したマッチャー
         /// </summary>
         public Matcher Generator { get; private set; }
@@ -42,8 +53,8 @@ namespace Parspell
         {
             get
             {
-                var token = TokenList.Instance[TokenEndIndex - 1];
-                return token.TextIndex + token.TextLength; 
+                var token = TokenList.Instance[TokenEndIndex];
+                return token.TextIndex; 
             }
         }
         public int TextLength
@@ -54,7 +65,9 @@ namespace Parspell
         public string Name { get; protected set; }
 
         public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name = "")
+            : this()
         {
+            
             Generator = generator;
             TokenBeginIndex = tokenBeginIndex;
             TokenEndIndex = tokenEndIndex;
@@ -64,6 +77,7 @@ namespace Parspell
         }
 
         public Match(Matcher generator, Match match, string name = "")
+            : this()
         {
             Generator = generator;
             TokenBeginIndex = match.TokenBeginIndex;
@@ -74,6 +88,7 @@ namespace Parspell
         }
 
         public Match(Matcher generator, IEnumerable<Match> matches, string name = "")
+            : this()
         {
             Generator = generator;
             TokenBeginIndex = -1;

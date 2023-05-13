@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -31,6 +32,7 @@ namespace Parspell
         {
             return a._() | b;
         }
+        public abstract string CharRangeString { get; }
     }
 
     /// <summary>
@@ -38,25 +40,25 @@ namespace Parspell
     /// </summary>
     public class SimpleCharMatcher : CharMatcher
     {
-        private CharRange _charRange;
+        public CharRange CharRange { get; private set; }
 
 
         public SimpleCharMatcher(char c)
         {
-            _charRange = new CharRange(c, c);
+            CharRange = new CharRange(c, c);
         }
         public SimpleCharMatcher(char min, char max)
         {
-            _charRange = new CharRange(min, max);
+            CharRange = new CharRange(min, max);
         }
         public SimpleCharMatcher(CharRange charRange)
         {
-            _charRange = charRange;
+            CharRange = charRange;
         }
 
         private SimpleCharMatcher(CharRange charRange, string name)
         {
-            _charRange = charRange;
+            CharRange = charRange;
             Name = name;
         }
 
@@ -69,14 +71,18 @@ namespace Parspell
 
             Match result;
             var token = tokenList[tokenIndex];
+
+            int tokenCount = 0;
+
             // 現在位置が文字トークンの時
             if (token is TokenChar cToken)
             {
+                tokenCount = 1;
                 // 範囲が合致した時
-                if (_charRange.IsMatch(cToken.Char))
+                if (CharRange.IsMatch(cToken.Char))
                 {
                     // 正解マッチを作成する
-                    result = new Match(this, tokenIndex, tokenIndex+1);
+                    result = new Match(this, tokenIndex, tokenIndex + tokenCount);
                     _matchList[tokenIndex, this] = result;
                     return result;
                 }
@@ -86,54 +92,60 @@ namespace Parspell
             lastNest.Rollback();
 
             // 失敗マッチを作成する
-            result = new FailMatch(this, tokenIndex, tokenIndex+1);
+            result = new FailMatch(this, tokenIndex, tokenIndex + tokenCount);
             _matchList[tokenIndex, this] = result;
             return result;
         }
 
-        
+        public override string CharRangeString
+        {
+            get
+            {
+                if (CharRange.Min == CharRange.Max)
+                {
+                    return CharRange.Min.Escape();
+                }
+                else
+                {
+                    return $"{CharRange.Min.Escape()}-{CharRange.Max.Escape()}";
+                }
+            }
+        }
 
-        
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+        {
+            Debug.WriteLine($"{nest}{this}");
+        }
+
+        public override string ToString()
         {
             var sb = new StringBuilder();
 
-            //if ((_charRanges.Count == 1) && (_charRanges[0].Min == _charRanges[0].Max))
-            //{
-            //    sb.Append('"');
-            //    sb.Append(_charRanges[0].Min.ToString());
-            //    sb.Append('"');
-            //}
-            //else
-            //{
-            //    sb.Append("[");
-            //    foreach (var range in _charRanges)
-            //    {
-            //        if (range.Min == range.Max)
-            //        {
-            //            sb.Append(range.Min);
-            //        }
-            //        else
-            //        {
-            //            sb.Append($"{range.Min}-{range.Max}");
-            //        }
-            //    }
-            //    sb.Append("]");
-            //}
-
-            Debug.WriteLine($"{nest} {sb.ToString()}");
+            if (CharRange.Min == CharRange.Max)
+            {
+                sb.Append('"');
+                sb.Append(CharRange.ToString());
+                sb.Append('"');
+            }
+            else
+            {
+                sb.Append("[");
+                sb.Append(CharRange.ToString());
+                sb.Append("]");
+            }
+            return sb.ToString();
         }
 
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public SimpleCharMatcher this[string Name]
+        public new SimpleCharMatcher this[string name]
         {
             get
             {
-                return new SimpleCharMatcher(_charRange, Name);
+                return new SimpleCharMatcher(CharRange, name);
             }
         }
     }
@@ -210,25 +222,51 @@ namespace Parspell
             return result;
         }
 
+        public override string CharRangeString
+        {
+            get
+            {
+                var sb = new StringBuilder();
+                foreach (var inner in _inners)
+                {
+                    sb.Append(inner.CharRangeString);
+                }
+                return sb.ToString();
+            }
+        }
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
+            Debug.WriteLine($"{nest}{this}");
+
             foreach (var inner in _inners)
             {
                 inner.DebugOut(matchers, nest + "  ");
             }
         }
 
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("[");
+            foreach (var inner in _inners)
+            {
+                sb.Append(inner.CharRangeString);
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
+
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public AnyCharMatcher this[string Name]
+        public new AnyCharMatcher this[string name]
         {
             get
             {
-                return new AnyCharMatcher(_inners, Name);
+                return new AnyCharMatcher(_inners, name);
             }
         }
     }
@@ -247,7 +285,7 @@ namespace Parspell
     //    private NotCharMatcher(CharMatcher inner, string name)
     //    {
     //        Inner = inner;
-    //        Name = name;
+    //        name = name;
     //    }
 
     //    public override Match Match(TokenList tokenList, int tokenIndex)
@@ -285,13 +323,13 @@ namespace Parspell
     //    /// <summary>
     //    /// このマッチャーに名前を設定したインスタンスを取得する
     //    /// </summary>
-    //    /// <param name="Name">名前</param>
+    //    /// <param name="name">名前</param>
     //    /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-    //    public NotCharMatcher this[string Name]
+    //    public NotCharMatcher this[string name]
     //    {
     //        get
     //        {
-    //            return new NotCharMatcher(Inner, Name);
+    //            return new NotCharMatcher(Inner, name);
     //        }
     //    }
     //}

@@ -61,7 +61,7 @@ namespace OPC_001
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public AtomicMatcher this[string name]
+        public new AtomicMatcher this[string name]
         {
             get { return new AtomicMatcher(Inner, name); }
         }

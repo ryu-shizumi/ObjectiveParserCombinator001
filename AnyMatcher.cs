@@ -64,6 +64,13 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            if (Name == "Operand")
+            {
+                var temp = "";
+            }
+
+
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -76,6 +83,11 @@ namespace Parspell
 
             foreach (var inner in Inners)
             {
+                if(inner.UniqID == 102)
+                {
+                    var temp = "";
+                }
+
                 tempResult = inner.Match(tokenList, currentIndex);
                 if (tempResult.IsSuccess)
                 {
@@ -124,7 +136,7 @@ namespace Parspell
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public AnyMatcher this[string name]
+        public new AnyMatcher this[string name]
         {
             get { return new AnyMatcher(Inners, name); }
         }

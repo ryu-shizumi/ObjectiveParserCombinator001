@@ -7,6 +7,7 @@ using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Enumerator;
 using OPC_001;
 using static Parspell.IgnoreBlank;
@@ -155,11 +156,6 @@ namespace Parspell
         /// <returns>マッチャー</returns>
         public static UnionMatcher operator +(Matcher a, Matcher b)
         {
-            if(a.UniqID == 68)
-            {
-                var temp = "";
-            }
-
             switch (IgnoreState)
             {
             case IgnoreStateFlag.IgnoreSpace:
@@ -242,9 +238,9 @@ namespace Parspell
         /// <param name="matcher">マッチャー</param>
         /// <param name="count">最大回数</param>
         /// <returns>最長一致マッチャー</returns>
-        public static LongMatcher operator *(Matcher matcher, int count)
+        public static Matcher operator *(Matcher matcher, int count)
         {
-            return new LongMatcher(matcher, count, count);
+            return CreateLoop(matcher, count, count);
         }
 
         /// <summary>
@@ -253,14 +249,59 @@ namespace Parspell
         /// <param name="matcher">マッチャー</param>
         /// <param name="range">回数範囲</param>
         /// <returns>最長一致マッチャー</returns>
-        public static LongMatcher operator *(Matcher matcher, IntRange range)
+        public static Matcher operator *(Matcher matcher, IntRange range)
         {
-            return new LongMatcher(matcher, range.Min, range.Max);
+            return CreateLoop(matcher, range.Min, range.Max);
+        }
+
+        private static Matcher CreateLoop(Matcher matcher, int min , int max)
+        {
+            if (max == 1)
+            {
+                return matcher;
+            }
+            if(IgnoreState == IgnoreStateFlag.NoIgnore)
+            {
+                return new LongMatcher(matcher, min, max);
+            }
+
+            Matcher loopInner = matcher;
+
+            switch (IgnoreState)
+            {
+            case IgnoreStateFlag.IgnoreSpace:
+                loopInner = BlankSpace + matcher;
+                break;
+            case IgnoreStateFlag.IgnoreNewline:
+                loopInner = BlankNewLine + matcher;
+                break;
+            case IgnoreStateFlag.IgnoreSpaceNewLine:
+                loopInner = BlankSpaceNewline + matcher;
+                break;
+            }
+            var result = matcher + new LongMatcher(loopInner, min - 1, max - 1);
+
+            if (min == 0)
+            {
+                return "" | result;
+            }
+            else
+            {
+                return result;
+            }
         }
 
         public static AnyMatcher operator |(Matcher a, Matcher b)
         {
             return new AnyMatcher(a, b);
+        }
+        public static AnyMatcher operator |(string a, Matcher b)
+        {
+            return new AnyMatcher(a._(), b);
+        }
+        public static AnyMatcher operator |(Matcher a, string b)
+        {
+            return new AnyMatcher(a, b._());
         }
 
         public string ClassName
@@ -288,26 +329,41 @@ namespace Parspell
             get { return new NotMatcher(this); }
         }
 
+        public LookaheadMatcher Lookahead
+        {
+            get { return new LookaheadMatcher(this); }
+        }
+
         /// <summary>
         /// このマッチャーを最小単位として扱うマッチャーを取得します
         /// </summary>
         public virtual AtomicMatcher Atom
         { get { return new AtomicMatcher(this); } }
 
+        #region 回数指定
         /// <summary>
-        /// このマッチャーを１回以上の繰り返す最長一致マッチャーを取得する
+        /// このマッチャーが０回か１回マッチするマッチャーを取得する
         /// </summary>
-        public LongMatcher Above1
+        public Matcher Optional
         {
-            get { return new LongMatcher(this, 1, int.MaxValue); }
+            get { return this | ""; }
+        }
+
+        /// <summary>
+        /// このマッチャーを１回以上の繰り返すマッチャーを取得する
+        /// </summary>
+        public Matcher Above1
+        {
+            get { return CreateLoop(this, 1, int.MaxValue); }
         }
         /// <summary>
-        /// このマッチャーを０回以上の繰り返す最長一致マッチャーを取得する
+        /// このマッチャーを０回以上の繰り返すマッチャーを取得する
         /// </summary>
-        public LongMatcher Above0
+        public Matcher Above0
         {
-            get { return new LongMatcher(this, 0, int.MaxValue); }
+            get { return CreateLoop(this, 0, int.MaxValue); }
         }
+        #endregion
 
         public override string ToString()
         {
@@ -317,6 +373,57 @@ namespace Parspell
             }
 
             return base.ToString();
+        }
+
+        public Matcher this[string name]
+        {
+            get
+            {
+                if (this is AnyMatcher _any) { return _any[name]; }
+                if (this is AtomicMatcher _atomic) { return _atomic[name]; }
+                if (this is SimpleCharMatcher _simplechar) { return _simplechar[name]; }
+                if (this is AnyCharMatcher _anychar) { return _anychar[name]; }
+                if (this is ErrorMatcher _error) { return _error[name]; }
+                if (this is LookaheadMatcher _lookahead) { return _lookahead[name]; }
+                if (this is ShortMatcher _short) { return _short[name]; }
+                if (this is LongMatcher _long) { return _long[name]; }
+                if (this is ZeroLengthMatcher _zerolength) { return _zerolength[name]; }
+                if (this is WordMatcher _word) { return _word[name]; }
+                if (this is NotMatcher _not) { return _not[name]; }
+                if (this is OperationMatcher _operation) { return _operation[name]; }
+                if (this is RecursionMatcher _recursion) { return _recursion[name]; }
+                if (this is UnionMatcher _union) { return _union[name]; }
+                throw new TypeAccessException();
+            }
+        }
+    }
+
+    public class ZeroLengthMatcher : WordMatcher
+    {
+        private static ZeroLengthMatcher _instance = new ZeroLengthMatcher();
+        public static ZeroLengthMatcher Instance { get { return _instance; } }
+        private ZeroLengthMatcher()
+            :base("") { }
+
+        private ZeroLengthMatcher(string name)
+            : base("",name) { }
+
+
+        public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
+        {
+            Debug.WriteLine(nest + "\"\"");
+        }
+
+        public override Match Match(TokenList tokenList, int tokenIndex)
+        {
+            return new Match(this, tokenIndex, tokenIndex, Name);
+        }
+        public new ZeroLengthMatcher this[string Name]
+        {
+            get
+            {
+                return new ZeroLengthMatcher(Name);
+            }
         }
     }
 
@@ -395,13 +502,13 @@ namespace Parspell
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public WordMatcher this[string Name]
+        public new WordMatcher this[string name]
         {
             get
             {
-                return new WordMatcher(Word, Name);
+                return new WordMatcher(Word, name);
             }
         }
     }
@@ -423,6 +530,18 @@ namespace Parspell
             return new CharRange(min, max);
         }
 
+        public static string Escape(this char c)
+        {
+            switch (c)
+            {
+            case '\r': return "\\r";
+            case '\n': return "\\n";
+            case '\t': return "\\t";
+            case '\v': return "\\v";
+            }
+            return c.ToString();
+        }
+
         /// <summary>
         /// この文字を文字マッチャーに変換する
         /// </summary>
@@ -440,6 +559,10 @@ namespace Parspell
         /// <returns>単語マッチャー</returns>
         public static WordMatcher _(this string word)
         {
+            if(word.Length == 0)
+            {
+                return ZeroLengthMatcher.Instance;
+            }
             return new WordMatcher(word);
         }
 
@@ -452,5 +575,26 @@ namespace Parspell
         {
             return new SimpleCharMatcher(charRange);
         }
+
+        /// <summary>
+        /// この文字に０回以上一致する最長一致一致マッチャーに変換する
+        /// </summary>
+        /// <param name="c">文字</param>
+        /// <returns></returns>
+        public static Matcher Above0(this char c)
+        {
+            return new SimpleCharMatcher(c).Above0;
+        }
+
+        /// <summary>
+        /// この文字に１回以上一致する最長一致一致マッチャーに変換する
+        /// </summary>
+        /// <param name="c">文字</param>
+        /// <returns></returns>
+        public static Matcher Above1(this char c)
+        {
+            return new SimpleCharMatcher(c).Above1;
+        }
+
     }
 }

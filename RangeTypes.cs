@@ -66,5 +66,11 @@ namespace Parspell
         {
             return a._() | b._();
         }
+
+        public override string ToString()
+        {
+            if(Min == Max) { return Min.Escape(); }
+            return $"{Min.Escape()}-{Max.Escape()}";
+        }
     }
 }

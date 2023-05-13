@@ -15,19 +15,19 @@ namespace Parspell
         /// 半角空白かタブ文字の連続の存在を無視できるマッチャー
         /// </summary>
         public static BlankMatcher BlankSpace =
-            new BlankMatcher(((' '._() | '\t') * 0.To(int.MaxValue))["Blank"]);
+            new BlankMatcher((' '._() | '\t').Above0["Blank"]);
 
         /// <summary>
         /// Cr か Lf の連続を無視できるマッチャー
         /// </summary>
         public static BlankMatcher BlankNewLine =
-            new BlankMatcher((('\r'._() | '\n') * 0.To(int.MaxValue))["Blank"]);
+            new BlankMatcher(('\r'._() | '\n').Above0["Blank"]);
 
         /// <summary>
         /// 半角空白かタブ文字か Cr か Lf の連続を無視できるマッチャー
         /// </summary>
         public static BlankMatcher BlankSpaceNewline =
-            new BlankMatcher(((' '._() | '\t' | ' '._() | '\t') * 0.To(int.MaxValue))["Blank"]);
+            new BlankMatcher((' '._() | '\t' | '\r' | '\n').Above0["Blank"]);
 
 
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -22,7 +23,14 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            throw new NotImplementedException();
+            Debug.WriteLine($"{nest}{Inner}.LookAhead");
+            Inner.DebugOut(matchers, nest + "  ");
+
+        }
+
+        public override string ToString()
+        {
+            return $"({Inner}).LookAhead";
         }
 
         /// <summary>
@@ -63,7 +71,7 @@ namespace Parspell
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public LookaheadMatcher this[string name]
+        public new LookaheadMatcher this[string name]
         {
             get { return new LookaheadMatcher(Inner, name); }
         }

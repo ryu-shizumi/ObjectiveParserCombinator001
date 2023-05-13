@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Diagnostics;
 namespace Parspell
 {
     /// <summary>
@@ -20,9 +20,14 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            throw new NotImplementedException();
+            Debug.WriteLine($"{nest}Blank");
+            _inner.DebugOut(matchers, nest + "  ");
         }
 
+        public override string ToString()
+        {
+            return _inner.ToString();
+        }
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
             // マッチリストにある時はそれを返す

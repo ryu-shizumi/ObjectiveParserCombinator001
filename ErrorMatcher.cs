@@ -55,13 +55,13 @@ namespace Parspell
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public ErrorMatcher this[string Name]
+        public new ErrorMatcher this[string name]
         {
             get
             {
-                return new ErrorMatcher(Inner, Name);
+                return new ErrorMatcher(Inner, name);
             }
         }
     }

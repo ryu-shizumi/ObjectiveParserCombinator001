@@ -1,7 +1,9 @@
 ﻿using Parspell;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -60,6 +62,15 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            if(Name == "OrExp")
+            {
+                var temp = "";
+            }
+            if(Name == "JoinExp")
+            {
+                var temp = "";
+            }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -95,22 +106,37 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
+            Debug.WriteLine($"{nest}{this}{Name}");
             foreach (Matcher matcher in Inners)
             {
                 matcher.DebugOut(matchers, nest + "  ");
             }
         }
 
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            foreach (Matcher matcher in Inners)
+            {
+                if(sb.Length > 0)
+                {
+                    sb.Append('+');
+                }
+                sb.Append(matcher.ToString());
+            }
+            return sb.ToString();
+        }
+
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public UnionMatcher this[string Name]
+        public new UnionMatcher this[string name]
         {
             get
             {
-                return new UnionMatcher(Name, Inners);
+                return new UnionMatcher(name, Inners);
             }
         }
     }

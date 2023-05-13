@@ -218,29 +218,37 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            string count = "";
-            if((Min == 0) && (Max == int.MaxValue))
-            {
-                count = "*";
-            }
-            else if ((Min == 1) && (Max == int.MaxValue))
-            {
-                count = "+";
-            }
-            else if ((Min == 0) && (Max == 1))
-            {
-                count = "?";
-            }
-            else if(Min == Max)
-            {
-                count = "{" + Min.ToString() + "}";
-            }
-            else
-            {
-                count = "{" + Min.ToString() + ","+ Max.ToString()+ "}";
-            }
+            Debug.WriteLine($"{nest}({Inner}){CountString}");
+        }
 
-            Debug.WriteLine($"({Inner}){count}");
+        public override string ToString()
+        {
+            return ($"({Inner}){CountString}");
+        }
+
+        private string CountString
+        {
+            get
+            {
+                string count = "";
+
+                string maxText = "";
+                if (Max <= int.MaxValue -1)
+                {
+                    maxText = Max.ToString();
+                }
+
+                if (Min == Max)
+                {
+                    count = "{" + Min.ToString() + "}";
+                }
+                else
+                {
+                    count = "{" + Min.ToString() + "," + maxText + "}";
+                }
+
+                return count;
+            }
         }
     }
 
@@ -266,13 +274,13 @@ namespace Parspell
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>
-        /// <param name="Name">名前</param>
+        /// <param name="name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public ShortMatcher this[string Name]
+        public new ShortMatcher this[string name]
         {
             get
             {
-                return new ShortMatcher(Inner, Min, Max, Name);
+                return new ShortMatcher(Inner, Min, Max, name);
             }
         }
     }
@@ -303,7 +311,7 @@ namespace Parspell
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public LongMatcher this[string Name]
+        public new LongMatcher this[string Name]
         {
             get
             {

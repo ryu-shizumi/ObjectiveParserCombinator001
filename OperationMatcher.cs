@@ -1,6 +1,7 @@
 ﻿using OPC_001;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -21,9 +22,13 @@ namespace Parspell
     public class OperationMatcher : Matcher
     {
         private Matcher _left;
-        private LongMatcher _right;
+        private Matcher _right;
 
-        // 二項演算式にマッチするマッチャーを生成する
+        /// <summary>
+        /// 二項演算式にマッチするマッチャーを生成する
+        /// </summary>
+        /// <param name="operand">オペランド</param>
+        /// <param name="operators">演算子</param>
         public OperationMatcher(Matcher operand, Matcher operators)
         {
             _left = operand;
@@ -130,7 +135,9 @@ namespace Parspell
 
         public override void DebugOut(HashSet<RecursionMatcher> matchers, string nest)
         {
-            throw new NotImplementedException();
+            Debug.WriteLine($"{nest}{_left} {_right}");
+            _left.DebugOut(matchers, nest + "  ");
+            _right.DebugOut(matchers, nest + "  ");
         }
 
         /// <summary>
@@ -138,21 +145,28 @@ namespace Parspell
         /// </summary>
         /// <param name="Name">名前</param>
         /// <returns>このマッチャーに名前を設定したインスタンス</returns>
-        public OperationMatcher this[string name]
+        public new OperationMatcher this[string name]
         {
             get { return new OperationMatcher(this, name); }
         }
 
         private Matcher GetNamedOperator(Matcher matcher, string name)
         {
-            if (matcher is AnyMatcher any) { return any[name]; }
-            if (matcher is AnyCharMatcher ac) { return ac[name]; }
-            if (matcher is SimpleCharMatcher sc) { return sc[name]; }
-            if (matcher is ShortMatcher sht) { return sht[name]; }
-            if (matcher is LongMatcher l) { return l[name]; }
-            if (matcher is AtomicMatcher atom) { return atom[name]; }
-            if (matcher is UnionMatcher uni) { return uni[name]; }
-            if (matcher is WordMatcher word) { return word[name]; }
+            if (matcher is AnyMatcher _any) { return _any[name]; }
+            if (matcher is AtomicMatcher _atomic) { return _atomic[name]; }
+            if (matcher is SimpleCharMatcher _simplechar) { return _simplechar[name]; }
+            if (matcher is AnyCharMatcher _anychar) { return _anychar[name]; }
+            if (matcher is ErrorMatcher _error) { return _error[name]; }
+            if (matcher is LookaheadMatcher _lookahead) { return _lookahead[name]; }
+            if (matcher is ShortMatcher _short) { return _short[name]; }
+            if (matcher is LongMatcher _long) { return _long[name]; }
+            if (matcher is ZeroLengthMatcher _zerolength) { return _zerolength[name]; }
+            if (matcher is WordMatcher _word) { return _word[name]; }
+            if (matcher is NotMatcher _not) { return _not[name]; }
+            if (matcher is OperationMatcher _operation) { return _operation[name]; }
+            if (matcher is RecursionMatcher _recursion) { return _recursion[name]; }
+            if (matcher is UnionMatcher _union) { return _union[name]; }
+
 
             throw new TypeAccessException();
         }

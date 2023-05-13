@@ -34,6 +34,10 @@ using static Parspell.IgnoreBlank.IgnoreStateFlag;
 
 //return;
 
+PythonPEG.Test();
+
+return;
+
 string text = 
     "012345\r\n"+
     "6789\r\n"+
@@ -48,6 +52,11 @@ string text =
 var alphabet = 'A'.To('Z') | 'a'.To('z');
 var numeric = '0'.To('9')._();
 var integer = numeric.Above1.Atom["Integer"];
+
+var alphabets = alphabet.Above1 + alphabet.Lookahead.Not;
+
+Test("987654abcdefg123", alphabets);
+
 
 // 識別子
 var identifier = (( alphabet | '_') + (alphabet | numeric | '_').Above0).Atom["Identifier"];
