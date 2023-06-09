@@ -34,32 +34,39 @@ using static Parspell.IgnoreBlank.IgnoreStateFlag;
 
 //return;
 
+
+
+
+
+
+
+
+
 PythonPEG.Test();
 
 return;
 
-string text = 
-    "012345\r\n"+
-    "6789\r\n"+
+string text =
+    "012345\r\n" +
+    "6789\r\n" +
     "   \r\n" +
     "   01\r\n" +
     "   23\r\n" +
     "   45\r\n" +
-    "  67\r\n"+
+    "  67\r\n" +
     "  89\r\n";
-
 
 var alphabet = 'A'.To('Z') | 'a'.To('z');
 var numeric = '0'.To('9')._();
-var integer = numeric.Above1.Atom["Integer"];
+var integer = numeric.Above1().Atom["Integer"];
 
-var alphabets = alphabet.Above1 + alphabet.Lookahead.Not;
+var alphabets = alphabet.Above1() + alphabet.Lookahead.Not;
 
 Test("987654abcdefg123", alphabets);
 
 
 // 識別子
-var identifier = (( alphabet | '_') + (alphabet | numeric | '_').Above0).Atom["Identifier"];
+var identifier = (( alphabet | '_') + (alphabet | numeric | '_').Above0()).Atom["Identifier"];
 
 // 式全般
 var exp = new RecursionMatcher()["Exp"];
@@ -72,9 +79,9 @@ var doubleQuote = '"'._();
 var singleQuote = '\''._();
 
 // ダブルクォーテーション文字列
-var doubleQuoteString = doubleQuote + (escapedChar | (doubleQuote | '\r' | '\n').Not).Above0.Atom + doubleQuote;
+var doubleQuoteString = doubleQuote + (escapedChar | (doubleQuote | '\r' | '\n').Not).Above0().Atom + doubleQuote;
 // シングルクォーテーション文字列
-var singleQuoteString = singleQuote + (escapedChar | (singleQuote | '\r' | '\n').Not).Above0.Atom + singleQuote;
+var singleQuoteString = singleQuote + (escapedChar | (singleQuote | '\r' | '\n').Not).Above0().Atom + singleQuote;
 
 IgnoreState = IgnoreSpaceNewLine;
 
@@ -85,9 +92,9 @@ var fExp = ('{' + exp + '}')["FExp"];
 
 IgnoreState = NoIgnore;
 // ダブルクォーテーション補完文字列
-var doubleQuoteFString = 'f'._() + doubleQuote + (escapedChar | fExp | (doubleQuote | '\r' | '\n').Not).Above0 + doubleQuote;
+var doubleQuoteFString = 'f'._() + doubleQuote + (escapedChar | fExp | (doubleQuote | '\r' | '\n').Not).Above0() + doubleQuote;
 // シングルクォーテーション補完文字列
-var singleQuoteFString = 'f'._() + singleQuote + (escapedChar | fExp | (singleQuote | '\r' | '\n').Not).Above0 + singleQuote;
+var singleQuoteFString = 'f'._() + singleQuote + (escapedChar | fExp | (singleQuote | '\r' | '\n').Not).Above0() + singleQuote;
 
 
 // 文字列リテラル
@@ -203,4 +210,5 @@ void Test(string text, Matcher matcher, params int[] numbers)
     Debug.WriteLine($"Test {sb}");
     match.DebugPrint();
 }
+
 

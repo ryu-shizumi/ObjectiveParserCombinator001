@@ -21,6 +21,9 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -34,7 +37,7 @@ namespace Parspell
             {
 
                 // 構文エラーマッチを作成する
-                result = new ErrorMatch(this, innerResult);
+                result = new SyntaxErrorMatch(this, innerResult);
                 _matchList[tokenIndex, this] = result;
                 return result;
             }

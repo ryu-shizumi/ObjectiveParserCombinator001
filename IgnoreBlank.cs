@@ -11,25 +11,41 @@ namespace Parspell
     /// </summary>
     public abstract class IgnoreBlank
     {
+        ///// <summary>
+        ///// 半角空白かタブ文字の連続の存在を無視できるマッチャー
+        ///// </summary>
+        //public static BlankMatcher BlankSpace =
+        //    new BlankMatcher((new LongMatcher('\r'._() | '\n', 0, int.MaxValue))["[\\r\\n]*"]);
+
+        ///// <summary>
+        ///// Cr か Lf の連続を無視できるマッチャー
+        ///// </summary>
+        //public static BlankMatcher BlankNewLine =
+        //    new BlankMatcher((new LongMatcher(' '._() | '\t', 0, int.MaxValue))["[ \\t]*"]);
+
+        ///// <summary>
+        ///// 半角空白かタブ文字か Cr か Lf の連続を無視できるマッチャー
+        ///// </summary>
+        //public static BlankMatcher BlankSpaceNewline = 
+        //    new BlankMatcher((new LongMatcher(' '._() | '\t' | '\r' | '\n',0,int.MaxValue))["[\\r\\n \\t]*"]);
+
         /// <summary>
         /// 半角空白かタブ文字の連続の存在を無視できるマッチャー
         /// </summary>
-        public static BlankMatcher BlankSpace =
-            new BlankMatcher((' '._() | '\t').Above0["Blank"]);
+        public static LongMatcher BlankSpace =
+            (new LongMatcher('\r'._() | '\n', 0, int.MaxValue))["[\\r\\n]*"];
 
         /// <summary>
         /// Cr か Lf の連続を無視できるマッチャー
         /// </summary>
-        public static BlankMatcher BlankNewLine =
-            new BlankMatcher(('\r'._() | '\n').Above0["Blank"]);
+        public static Matcher BlankNewLine =
+            (new LongMatcher(' '._() | '\t', 0, int.MaxValue))["[ \\t]*"];
 
         /// <summary>
         /// 半角空白かタブ文字か Cr か Lf の連続を無視できるマッチャー
         /// </summary>
-        public static BlankMatcher BlankSpaceNewline =
-            new BlankMatcher((' '._() | '\t' | '\r' | '\n').Above0["Blank"]);
-
-
+        public static LongMatcher BlankSpaceNewline =
+            (new LongMatcher(' '._() | '\t' | '\r' | '\n', 0, int.MaxValue))["[\\r\\n \\t]*"];
 
         public enum IgnoreStateFlag
         {

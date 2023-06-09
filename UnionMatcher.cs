@@ -37,14 +37,18 @@ namespace Parspell
 
             foreach (var inner in inners)
             {
+                if(inner.Name != "")
+                {
+                    list.Add(inner);
+                    continue;
+                }
+
                 if (inner is UnionMatcher unionLeft)
                 {
                     list.AddRange(unionLeft.Inners);
+                    continue;
                 }
-                else
-                {
-                    list.Add(inner);
-                }
+                list.Add(inner);
             }
 
             Inners = list.ToArray();
@@ -71,6 +75,22 @@ namespace Parspell
                 var temp = "";
             }
 
+            if (UniqID == "G125")
+            {
+                var temp = "";
+            }
+            if ((UniqID == "G123") && (tokenIndex == 3))
+            {
+                var temp = "";
+            }
+            if ((UniqID == "G114") && (tokenIndex == 3))
+            {
+                var temp = "";
+            }
+
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -82,6 +102,15 @@ namespace Parspell
 
             foreach (Matcher matcher in Inners)
             {
+                if ((matcher.UniqID == "G58") && (nextIndex == 3))
+                {
+                    var temp = "";
+                }
+                if ((matcher.UniqID == "G123") && (nextIndex == 3))
+                {
+                    var temp = "";
+                }
+
                 Match match = matcher.Match(tokenList, nextIndex);
                 if (match.IsSuccess == false)
                 {
@@ -99,7 +128,7 @@ namespace Parspell
             }
 
 
-            result = new WrapMatch(this, matchList.ToArray());
+            result = new WrapMatch(this, matchList);
             _matchList[tokenIndex, this] = result;
             return result;
         }
@@ -115,6 +144,8 @@ namespace Parspell
 
         public override string ToString()
         {
+            if (Name != "") { return Name; }
+
             var sb = new StringBuilder();
             foreach (Matcher matcher in Inners)
             {

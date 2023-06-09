@@ -22,7 +22,15 @@ namespace OPC_001
         }
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            if (Inner == null) { throw new NullReferenceException(); }
+            // if (Inner == null) { throw new NullReferenceException(); }
+
+            if(UniqID == "G35")
+            {
+                var temp = "";
+            }
+
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
 
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
@@ -34,7 +42,7 @@ namespace OPC_001
             var innerResult = Inner.Match(tokenList, tokenIndex);
             if (innerResult.IsSuccess)
             {
-                result = new Match(this, innerResult);
+                result = new SuccessMatch(this, innerResult);
                 _matchList[tokenIndex, this] = result;
                 return result;
             }
@@ -50,10 +58,16 @@ namespace OPC_001
         {
             Debug.WriteLine(nest + Name + " (" + ClassName + ")");
 
-            if (Inner != null)
-            {
-                Inner.DebugOut(matchers, nest + "  ");
-            }
+            //if (Inner != null)
+            //{
+            //    Inner.DebugOut(matchers, nest + "  ");
+            //}
+        }
+        public override string ToString()
+        {
+            if (Name != "") { return Name; }
+
+            return Inner.ToString();
         }
 
         /// <summary>

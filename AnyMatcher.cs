@@ -68,8 +68,13 @@ namespace Parspell
             {
                 var temp = "";
             }
+            if ((UniqID == "G107") && (tokenIndex == 3))
+            {
+                var temp = "";
+            }
 
-
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
 
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
@@ -83,12 +88,11 @@ namespace Parspell
 
             foreach (var inner in Inners)
             {
-                if(inner.UniqID == 102)
-                {
-                    var temp = "";
-                }
 
                 tempResult = inner.Match(tokenList, currentIndex);
+
+
+
                 if (tempResult.IsSuccess)
                 {
                     // このマッチャーに名前がある時
@@ -120,6 +124,7 @@ namespace Parspell
             lastNest.Rollback();
 
             result = new FailMatch(this, tokenIndex);
+
             _matchList[tokenIndex, this] = result;
             return result;
         }
@@ -131,6 +136,21 @@ namespace Parspell
                 inner.DebugOut(matchers, nest + "  ");
             }
         }
+
+        public override string ToString()
+        {
+            if(Name  != "") { return  Name; }
+
+            var sb = new StringBuilder();
+
+            foreach (var inner in Inners)
+            {
+                if(sb.Length > 0) { sb.Append('+'); }
+                sb.Append(inner.ToString());
+            }
+            return sb.ToString();
+        }
+
         /// <summary>
         /// このマッチャーに名前を設定したインスタンスを取得する
         /// </summary>

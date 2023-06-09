@@ -21,11 +21,6 @@ namespace Parspell
             }
             set
             {
-                if(value.UniqID == 110)
-                {
-                    var temp = "";
-                }
-
                 _inneWraper.Inner = value;
             }
         }
@@ -47,15 +42,20 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            if (UniqID == 66)
+            //if (UniqID == 66)
+            //{
+            //    var temp = "";
+            //}
+            if ((UniqID == "G58") && (tokenIndex == 3))
             {
                 var temp = "";
             }
 
-
-
             // 中身が無い時は例外を吐く
             if (Inner == null) { throw new NullReferenceException(); }
+
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
 
             //// マッチリストにある時はそれを返す
             //if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }

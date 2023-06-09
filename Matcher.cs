@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -51,11 +52,11 @@ namespace Parspell
         /// </summary>
         private static int _count = 0;
 
-        public int UniqID { get; private set; }
+        public string UniqID { get; private set; }
         
         protected Matcher()
         {
-            UniqID = _count++;
+            UniqID = $"G{_count++}";
         }
 
         /// <summary>
@@ -94,6 +95,11 @@ namespace Parspell
         /// <returns>マッチしていれば１個のマッチを返す。非マッチならFailMatchを返す</returns>
         public abstract Match Match(TokenList tokenList, int tokenIndex);
 
+        public bool Check(int currentIndex, int targetIndex, string targetUniqID)
+        {
+            return (UniqID == targetUniqID) && (currentIndex == targetIndex);
+        }
+
         /// <summary>
         /// このマッチャーがトークンリストの任意の位置にマッチするならマッチを１個以上返す
         /// </summary>
@@ -103,6 +109,11 @@ namespace Parspell
         /// <remarks>回数指定に範囲のあるマッチの場合、何度もマッチを返す可能性がある</remarks>
         public virtual IEnumerable<Match> EnumMatch(TokenList tokenList, int tokenIndex)
         {
+            if ((UniqID == "G129") && (tokenIndex == 13))
+            {
+                var temp = "";
+            }
+
             var match = Match(tokenList, tokenIndex);
             if(match.IsSuccess)
             {
@@ -240,7 +251,7 @@ namespace Parspell
         /// <returns>最長一致マッチャー</returns>
         public static Matcher operator *(Matcher matcher, int count)
         {
-            return CreateLoop(matcher, count, count);
+            return CreateLoop(matcher, null, count, count);
         }
 
         /// <summary>
@@ -251,44 +262,69 @@ namespace Parspell
         /// <returns>最長一致マッチャー</returns>
         public static Matcher operator *(Matcher matcher, IntRange range)
         {
-            return CreateLoop(matcher, range.Min, range.Max);
+            return CreateLoop(matcher, null, range.Min, range.Max);
         }
 
-        private static Matcher CreateLoop(Matcher matcher, int min , int max)
+        private static LongMatcher CreateLoopNull(Matcher matcher, int min, int max)
         {
-            if (max == 1)
-            {
-                return matcher;
-            }
-            if(IgnoreState == IgnoreStateFlag.NoIgnore)
-            {
-                return new LongMatcher(matcher, min, max);
-            }
-
-            Matcher loopInner = matcher;
+            Matcher loopInner;
+            Matcher blank;
+            LongMatcher result;
 
             switch (IgnoreState)
             {
             case IgnoreStateFlag.IgnoreSpace:
-                loopInner = BlankSpace + matcher;
+                blank = BlankSpace;
+                loopInner = new SeparatedMatcher(matcher, blank);
                 break;
             case IgnoreStateFlag.IgnoreNewline:
-                loopInner = BlankNewLine + matcher;
+                blank = BlankNewLine;
+                loopInner = new SeparatedMatcher(matcher, blank);
                 break;
             case IgnoreStateFlag.IgnoreSpaceNewLine:
-                loopInner = BlankSpaceNewline + matcher;
+                blank = BlankSpaceNewline;
+                loopInner = new SeparatedMatcher(matcher, blank);
+                break;
+            default:
+                loopInner = matcher;
                 break;
             }
-            var result = matcher + new LongMatcher(loopInner, min - 1, max - 1);
 
-            if (min == 0)
+            result = new LongMatcher(loopInner, min, max);
+            return result;
+        }
+
+        private static LongMatcher CreateLoop(Matcher matcher, Matcher? separater, int min , int max)
+        {
+            if(separater == null)
             {
-                return "" | result;
+                return CreateLoopNull(matcher, min, max);
             }
-            else
+
+            Matcher loopInner;
+            Matcher blank;
+            LongMatcher result;
+
+            switch (IgnoreState)
             {
-                return result;
+            case IgnoreStateFlag.IgnoreSpace:
+                blank = BlankSpace;
+                loopInner = new SeparatedMatcher(matcher, new UnionMatcher(blank, separater, blank));
+                break;
+            case IgnoreStateFlag.IgnoreNewline:
+                blank = BlankNewLine;
+                loopInner = new SeparatedMatcher(matcher, new UnionMatcher(blank, separater, blank));
+                break;
+            case IgnoreStateFlag.IgnoreSpaceNewLine:
+                blank = BlankSpaceNewline;
+                loopInner = new SeparatedMatcher(matcher, new UnionMatcher(blank, separater, blank));
+                break;
+            default:
+                loopInner = new SeparatedMatcher(matcher, separater);
+                break;
             }
+            result = new LongMatcher(loopInner, min, max);
+            return result;
         }
 
         public static AnyMatcher operator |(Matcher a, Matcher b)
@@ -300,6 +336,14 @@ namespace Parspell
             return new AnyMatcher(a._(), b);
         }
         public static AnyMatcher operator |(Matcher a, string b)
+        {
+            return new AnyMatcher(a, b._());
+        }
+        public static AnyMatcher operator |(char a, Matcher b)
+        {
+            return new AnyMatcher(a._(), b);
+        }
+        public static AnyMatcher operator |(Matcher a, char b)
         {
             return new AnyMatcher(a, b._());
         }
@@ -320,14 +364,6 @@ namespace Parspell
         }
 
         public abstract void DebugOut(HashSet<RecursionMatcher> matchers, string nest);
-
-        /// <summary>
-        /// このマッチャーの否定となるインスタンスを取得する
-        /// </summary>
-        public NotMatcher Not
-        {
-            get { return new NotMatcher(this); }
-        }
 
         public LookaheadMatcher Lookahead
         {
@@ -352,16 +388,36 @@ namespace Parspell
         /// <summary>
         /// このマッチャーを１回以上の繰り返すマッチャーを取得する
         /// </summary>
-        public Matcher Above1
+        /// <returns></returns>
+        public Matcher Above1()
         {
-            get { return CreateLoop(this, 1, int.MaxValue); }
+            return CreateLoop(this, null, 1, int.MaxValue);
+        }
+        /// <summary>
+        /// このマッチャーを区切りを挟みつつ１回以上の繰り返すマッチャーを取得する
+        /// </summary>
+        /// <param name="separater">区切り</param>
+        /// <returns></returns>
+        public Matcher Above1(Matcher? separater = null)
+        {
+            return CreateLoop(this, separater, 1, int.MaxValue);
         }
         /// <summary>
         /// このマッチャーを０回以上の繰り返すマッチャーを取得する
         /// </summary>
-        public Matcher Above0
+        /// <returns></returns>
+        public Matcher Above0()
         {
-            get { return CreateLoop(this, 0, int.MaxValue); }
+            return CreateLoop(this, null, 0, int.MaxValue);
+        }
+        /// <summary>
+        /// このマッチャーを区切りを挟みつつ０回以上の繰り返すマッチャーを取得する
+        /// </summary>
+        /// <param name="separater"></param>
+        /// <returns></returns>
+        public Matcher Above0(Matcher? separater = null)
+        {
+            return CreateLoop(this, separater, 0, int.MaxValue);
         }
         #endregion
 
@@ -416,7 +472,7 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
-            return new Match(this, tokenIndex, tokenIndex, Name);
+            return new SuccessMatch(this, tokenIndex, tokenIndex, Name);
         }
         public new ZeroLengthMatcher this[string Name]
         {
@@ -425,13 +481,17 @@ namespace Parspell
                 return new ZeroLengthMatcher(Name);
             }
         }
+        public override string ToString()
+        {
+            return "\"\"";
+        }
     }
 
 
     /// <summary>
     /// 単語と照合するマッチャー
     /// </summary>
-    public class WordMatcher : Matcher
+    public class WordMatcher : NotableMatcher
     {
         public string Word { get; private set; }
 
@@ -443,6 +503,9 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex + Word.Length)) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
 
@@ -472,7 +535,7 @@ namespace Parspell
                 return result;
             }
             // 全文字の検査でハジかれなかった時は成功を返す
-            result = new Match(this, tokenIndex, tokenIndex + Word.Length);
+            result = new SuccessMatch(this, tokenIndex, tokenIndex + Word.Length);
             _matchList[tokenIndex, this] = result;
             return result;
         }
@@ -583,7 +646,7 @@ namespace Parspell
         /// <returns></returns>
         public static Matcher Above0(this char c)
         {
-            return new SimpleCharMatcher(c).Above0;
+            return new SimpleCharMatcher(c).Above0();
         }
 
         /// <summary>
@@ -593,7 +656,7 @@ namespace Parspell
         /// <returns></returns>
         public static Matcher Above1(this char c)
         {
-            return new SimpleCharMatcher(c).Above1;
+            return new SimpleCharMatcher(c).Above1();
         }
 
     }

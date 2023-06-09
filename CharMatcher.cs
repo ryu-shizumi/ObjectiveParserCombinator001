@@ -9,7 +9,7 @@ using System.Xml.Linq;
 
 namespace Parspell
 {
-    public abstract class CharMatcher : Matcher
+    public abstract class CharMatcher : NotableMatcher
     {
 
         public static AnyCharMatcher operator |(CharMatcher a, CharMatcher b)
@@ -32,6 +32,7 @@ namespace Parspell
         {
             return a._() | b;
         }
+
         public abstract string CharRangeString { get; }
     }
 
@@ -64,6 +65,9 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -82,7 +86,7 @@ namespace Parspell
                 if (CharRange.IsMatch(cToken.Char))
                 {
                     // 正解マッチを作成する
-                    result = new Match(this, tokenIndex, tokenIndex + tokenCount);
+                    result = new SuccessMatch(this, tokenIndex, tokenIndex + tokenCount);
                     _matchList[tokenIndex, this] = result;
                     return result;
                 }
@@ -189,6 +193,14 @@ namespace Parspell
 
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            if (ProcessCount.Count == 2)
+            {
+                var temp = "";
+            }
+
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex )) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -199,8 +211,11 @@ namespace Parspell
             int currentIndex = tokenIndex;
             Match tempResult;
 
+            int tokenCount = 0;
+
             foreach (var inner in _inners)
             {
+                tokenCount = 1;
                 tempResult = inner.Match(tokenList, currentIndex);
                 if (tempResult.IsSuccess)
                 {
@@ -217,7 +232,13 @@ namespace Parspell
             // マッチ失敗なのでインデントをロールバックする
             lastNest.Rollback();
 
-            result = new FailMatch(this, tokenIndex, tokenIndex + 1);
+            result = new FailMatch(this, tokenIndex, tokenIndex + tokenCount);
+
+            if (result.UniqID == "P9")
+            {
+                var temp = "";
+            }
+
             _matchList[tokenIndex, this] = result;
             return result;
         }

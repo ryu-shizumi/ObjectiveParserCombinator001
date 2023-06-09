@@ -57,14 +57,14 @@ namespace Parspell
             var newLine = "\r\n"._();
 
             // コメント
-            var comment = ('#' + ('\r'._() | '\n').Not.Above0).Atom["Comment"];
-            var comments = comment + (newLine.Above1 + comment).Above0;
+            var comment = ('#' + ('\r'._() | '\n').Not.Above0()).Atom["Comment"];
+            var comments = (comment + (newLine.Above1().Atom + comment).Above0())["Comments"];
 
             // 識別子
-            var identifier = ((alphabet | '_') + (alphabet | numeric | '_').Above0).Atom["Identifier"];
+            var identifier = ((alphabet | '_') + (alphabet | numeric | '_').Above0()).Atom["Identifier"];
 
             // 文字列リテラル
-            var stringliteral = ('\'' + '\''._().Not.Above1.Atom["StringBody"] + '\'')["StringLiteral"];
+            var stringliteral = ('\'' + '\''._().Not.Above1().Atom["StringBody"] + '\'')["StringLiteral"];
 
             // 単独要素として扱える式
             var exp = new RecursionMatcher()["Exp"];
@@ -72,7 +72,7 @@ namespace Parspell
             IgnoreState = IgnoreSpaceNewLine;
 
             // レコードの先頭部分
-            var recoardHead = identifier + ':';
+            var recoardHead = (identifier + ':')["RecoardHead"];
 
             // 式に含まれる識別子
             var identifierOnExp = (recoardHead.Lookahead.Not + identifier)["IdentifierOnExp"];
@@ -102,7 +102,7 @@ namespace Parspell
             var above1 = (primary + '+')["Above1"];
 
             IgnoreState = IgnoreSpace;
-            // s.e+
+            // s.e+ 区切りを挟んだ繰り返し
             var separated = (primary["Separator"] + '.' + primary["Item"] + '+')["Separated"];
 
             // 連結のオペランドになれる要素
@@ -111,38 +111,36 @@ namespace Parspell
             // 空白を読み飛ばさない（区切り文字として必要）
             IgnoreState = NoIgnore;
             // e1 e2 要素の連結
-            var joinExp = (operand + (' '._().Above1.Atom + operand).Above0)["JoinExp"];
+            var joinExp = (operand + (' '._().Above1().Atom + operand).Above0())["JoinExp"];
 
             // 空白・改行を読み飛ばす
             IgnoreState = IgnoreSpaceNewLine;
             // e1 | e2 要素の選択
-            var orExp = (joinExp + ('|' + joinExp).Above0)["OrExp"];
+            var orExp = (joinExp + ('|' + joinExp).Above0())["OrExp"];
 
             exp.Inner = orExp;
 
             //exp.DebugOut();
             Debug.WriteLine("|-=-=_-=-=|-=-=_-=-=");
 
-            //Test("a+", exp, 1, 0, 0);
-            //Test("a b", exp, 2, 0, 0);
-            //Test("a b [C] d* e+ f g: h", exp, 3, 0, 0);
 
 
             IgnoreState = IgnoreSpaceNewLine;
-            var recoard = recoardHead + exp;
-            var recoards = recoard.Above1;
-            
-            
+            var recoard = (recoardHead + exp)["Recoard"];
+            DebugCount.WriteLine(); 
+            var recoards = recoard.Above1()["Recoards"];
+
+
             //recoard.DebugOut();
             //Test("b C: d e f g: h", recoard, 9, 3, 0);
 
 
 
 
-            //Test("a b: C d e f g: h", recoards, 9, 3, 0);
-            //Test("b C d e : f g", identifierOnExp.Above1, 9, 4, 0);
 
-            var PEG = (recoards | comments).Above1;
+            var recoards_or_comments = (recoards | comments);
+            
+            var PEG = recoards_or_comments.Above1()["PEG"];
             testText = "PythonPEG_Part.txt".GetText_UTF8();
 
             //Test(testText, PEG, 10);
@@ -150,9 +148,52 @@ namespace Parspell
             //testText = "# PEG grammar for Python\r\n\r\n\r\n\r\n# ========================= START OF THE GRAMMAR =========================\r\n\r\n# General grammatical elements and rules:";
             testText = "#a\r\n#b";
 
-            Test("#a", comments, 11,1);
-            Test("#a\r\n#b", comments, 11,2);
-            Test("#a\r\n#b\r\n#c", comments, 11, 3);
+            //Test("#a", comment, 11, 0, 0);
+            //Test("#ab", comment, 11, 0, 1);
+            //Test("#abc", comment, 11, 0, 2);
+            //Test("#abcd", comment, 11, 0, 3);
+            //Test("#abcde", comment, 11, 0, 4);
+
+            comments.DebugOut();
+
+            //Test("#a", comments, 11,1);
+            //Test("#a\r\n#b", comments, 11,2);
+            //Test("#a\r\n#b\r\n", comments, 11, 2, 2);
+            //Test("#a\r\n#b  ", comments, 11, 2, 3);
+            //Test("#a\r\n#b\r\n#c", comments, 11, 3);
+
+            //Test("a+", exp, 1, 0, 0);
+            //Test("a b", exp, 2, 0, 0);
+            //Test("a b [C] d* e+ f g: h", exp, 3, 0, 0);
+
+            Test("g: h", recoard, 9, 3, 0, 0);
+            Test("g: h", recoards, 9, 3, 0, 1);
+            Test("a b: C d e f g: h", recoards, 9, 3, 0);
+            //Test("b C d e : f g", identifierOnExp.Above1, 9, 4, 0);
+
+            //Test("#a", comments, 12, 1);
+            //Test("#a", PEG, 12, 2);
+            //Test("#a", recoards_or_comments, 12, 2,2);
+            //Test("#a\r\n#b", PEG, 12, 2);
+            //Test("#a\r\n#b\r\n", PEG, 12, 2, 2);
+            //Test("#a\r\n#b  ", PEG, 12, 2, 3);
+            //Test("#a\r\n#b\r\n#c", PEG, 12, 3);
+
+            //Test("#a\r\n#b\r\n#c\r\nx:y z\r\nL:M N", PEG, 13, 0);
+
+            Test("x : y L : M", recoards, 14, 0);
+            Test("x:y L:M", recoards, 14, 0,2);
+            Test("x:y\r\nL:M", recoards, 14, 0, 3);
+            Test("x : y L : M", PEG, 14, 1);
+            Test("x:y L:M", PEG, 14, 2);
+            Test("x:y\r\nL:M", PEG, 14, 3);
+            Test("x:y z\r\nL:M N", PEG, 14, 4);
+
+            Test("#a\r\nx:y", PEG, 13, 1);
+            Test("#a\r\n#b\r\nx:y", PEG, 13, 2);
+            Test("#a\r\n#b\r\n#c\r\nx:y z\r\nL:M N", PEG, 13, 3);
+
+
         }
 
         private static void Test(string text, Matcher matcher, params int[] numbers)
@@ -201,14 +242,14 @@ namespace Parspell
             var numeric = '0'.To('9')._();
 
             // コメント
-            var comment = ('#' + ('\r'._() | '\n').Not.Above0).Atom["Comment"];
+            var comment = ('#' + ('\r'._() | '\n').Not.Above0()).Atom["Comment"];
 
 
             // 識別子
-            var identifier = ((alphabet | '_') + (alphabet | numeric | '_').Above0).Atom["Identifier"];
+            var identifier = ((alphabet | '_') + (alphabet | numeric | '_').Above0()).Atom["Identifier"];
 
             // 文字列リテラル
-            var stringliteral = ('\'' + '\''._().Not.Above1.Atom["StringBody"] + '\'')["StringLiteral"];
+            var stringliteral = ('\'' + '\''._().Not.Above1().Atom["StringBody"] + '\'')["StringLiteral"];
 
             // 単独要素として扱える式
             var exp = new RecursionMatcher()["Exp"];
@@ -219,14 +260,14 @@ namespace Parspell
             IgnoreState = IgnoreSpace;
             var recoardHead = identifier + ':';
             // e1 e2
-            var joinExp = (exp["JoinLeft"] + (recoardHead.Lookahead.Not + exp).Above0["JoinRight"])["JoinExp"]; //new OperationMatcher(exp, ' '._().Above1)["JoinExp"];
+            var joinExp = (exp["JoinLeft"] + (recoardHead.Lookahead.Not + exp).Above0()["JoinRight"])["JoinExp"]; //new OperationMatcher(exp, ' '._().Above1)["JoinExp"];
                                                                                                                 //var joinExp = (exp["JoinLeft"] + (recoardHead.Lookahead.Not + exp).Above0)["JoinExp"]; //new OperationMatcher(exp, ' '._().Above1)["JoinExp"];
                                                                                                                 //var joinExp = (exp +  (recoardHead.Lookahead.Not + exp).Above0["JoinRight"])["JoinExp"]; //new OperationMatcher(exp, ' '._().Above1)["JoinExp"];
 
 
             IgnoreState = IgnoreSpaceNewLine;
             // e1 | e2
-            var orExp = (joinExp + ('|' + joinExp).Above0)["OrExp"]; //new OperationMatcher(joinExp, "|"._())["OrExp"];
+            var orExp = (joinExp + ('|' + joinExp).Above0())["OrExp"]; //new OperationMatcher(joinExp, "|"._())["OrExp"];
 
             IgnoreState = IgnoreSpace;
             // [e]  or  e?
@@ -268,13 +309,13 @@ namespace Parspell
 
             IgnoreState = IgnoreSpaceNewLine;
             var recoard = (recoardHead + exp)["Recoard"];
-            var recoards = recoard.Above1;
+            var recoards = recoard.Above1();
 
             IgnoreState = IgnoreNewline;
-            var comments = (comment + comment.Above0)["Comments"];
+            var comments = (comment + comment.Above0())["Comments"];
 
             IgnoreState = IgnoreSpaceNewLine;
-            var peg = (comments | recoard).Above1;
+            var peg = (comments | recoard).Above1();
 
 
 

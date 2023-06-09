@@ -11,7 +11,7 @@ namespace Parspell
     /// <summary>
     /// 先読みマッチャー
     /// </summary>
-    public class LookaheadMatcher : Matcher
+    public class LookaheadMatcher : NotableMatcher
     {
         public Matcher Inner { get; private set; }
 
@@ -41,6 +41,9 @@ namespace Parspell
         /// <returns></returns>
         public override Match Match(TokenList tokenList, int tokenIndex)
         {
+            // 範囲外の時は範囲外マッチを返す
+            if (tokenList.IsRangeOut(tokenIndex)) { return new RangeOutMatch(this, tokenIndex); }
+
             // マッチリストにある時はそれを返す
             if (_matchList.ContainsKey(tokenIndex, this)) { return _matchList[tokenIndex, this]; }
             // インデントのロールバックに備えて現在値を取得しておく
@@ -53,7 +56,7 @@ namespace Parspell
 
             if (innerResult.IsSuccess)
             {
-                result = new LookaheadMatch(this, innerResult.TokenBeginIndex, Name);
+                result = new SuccessMatch(this, innerResult.TokenBeginIndex, Name);
                 _matchList[tokenIndex, this] = result;
                 return result;
             }

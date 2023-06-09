@@ -223,8 +223,8 @@ namespace Parspell
     /// </summary>
     public class TokenSpecialTextBegin : TokenSpecial
     {
-        public TokenSpecialTextBegin(int charIndex)
-            : base(charIndex) { }
+        public TokenSpecialTextBegin()
+            : base(0) { }
     }
 
     /// <summary>
@@ -244,6 +244,20 @@ namespace Parspell
         public TokenSpecialLineBegin(int charIndex)
             : base(charIndex) { }
     }
+
+    /// <summary>
+    /// ネストトークン
+    /// </summary>
+    public class TokenSpecialNest : TokenSpecial
+    {
+        public int NestCount { get; private set; }
+        public TokenSpecialNest(int charIndex, int nestCount)
+            : base(charIndex)
+        {
+            NestCount = nestCount;
+        }
+    }
+
 
     /// <summary>
     /// インデントトークン

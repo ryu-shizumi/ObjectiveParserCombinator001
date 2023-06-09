@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Parspell
@@ -95,10 +96,16 @@ namespace Parspell
             // 最低ゼロ回の時は、長さゼロでマッチを作る
             if (Min == 0)
             {
-                var wrap = new Match(this, tokenIndex, tokenIndex);
+                var wrap = new SuccessMatch(this, tokenIndex, tokenIndex);
                 // 返信リストに追加する
                 results.Add(wrap);
                 isMatchReturned = true;
+            }
+
+            // 範囲外で、かつ、１回以上の時は範囲外マッチを返す
+            if ((tokenList.IsRangeOut(tokenIndex))&& Min > 0)
+            {
+                yield return new RangeOutMatch(this, tokenIndex); 
             }
 
             //int currentIndex = tokenIndex;
@@ -111,6 +118,12 @@ namespace Parspell
             //{
             //    var temp = "";
             //}
+
+            if ((UniqID == "G130") && (tokenIndex == 13))
+            {
+                var temp = "";
+            }
+
 
             var enumerator = Inner.EnumMatch(tokenList, currentIndex.Peek()).GetEnumerator();
             stack.Push(enumerator);
@@ -126,12 +139,12 @@ namespace Parspell
                 var currentMatch = peek.Current;
                 // bool isSuccess = currentMatch.IsSuccess;
 
-                if ((currentMatch != null) && (currentMatch.TextLength == 0))
-                {
-                    var generator = currentMatch.Generator;
-                    var matchID = currentMatch.Generator.UniqID;
-                    var temp = "";
-                }
+                //if ((currentMatch != null) && (currentMatch.TextLength == 0))
+                //{
+                //    var generator = currentMatch.Generator;
+                //    var matchID = currentMatch.Generator.UniqID;
+                //    var temp = "";
+                //}
 
                 // 成功マッチが帰ってきた時（水平方向に進めた時）
                 if ((moveNext) &&
@@ -223,6 +236,7 @@ namespace Parspell
 
         public override string ToString()
         {
+            if(Name != "") { return  Name; }
             return ($"({Inner}){CountString}");
         }
 
@@ -292,6 +306,8 @@ namespace Parspell
     /// </remarks>
     public class LongMatcher : LoopMatcher_Base
     {
+        public LongMatcher(Matcher inner, Matcher separater, int min, int max)
+            :this(new SeparatedMatcher(inner,separater),min,max) { }
         public LongMatcher(Matcher inner, int min, int max)
             : base(inner, min, max) { }
 

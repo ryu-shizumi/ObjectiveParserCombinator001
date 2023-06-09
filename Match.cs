@@ -7,24 +7,25 @@ using System.Diagnostics;
 using System.Collections;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace Parspell
 {
     /// <summary>
     /// マッチ結果
     /// </summary>
-    public class Match
+    public abstract class Match
     {
         /// <summary>
         /// デバッグ用のUniqIDを与える為のインスタンス数カウンタ
         /// </summary>
         private static int _count = 0;
 
-        public int UniqID { get; private set; }
+        public string UniqID { get; private set; }
 
         protected Match()
         {
-            UniqID = _count++;
+            UniqID = $"P{_count++}";
         }
         /// <summary>
         /// このマッチを生成したマッチャー
@@ -47,22 +48,74 @@ namespace Parspell
 
         public virtual int TextIndex
         {
-            get { return TokenList.Instance[TokenBeginIndex].TextIndex; }
+            get
+            {
+                // 文字位置が最終トークンの終端から始まる時
+                if(TokenBeginIndex == TokenList.Instance.Count)
+                {
+                    return Token.Text.Length;
+                }
+
+                Token token = TokenList.Instance[TokenBeginIndex];
+                return token.TextIndex; 
+            }
         }
         public virtual int TextEndIndex
         {
             get
             {
-                var token = TokenList.Instance[TokenEndIndex];
-                return token.TextIndex; 
+                // 文字位置が最終トークンの終端から始まる時
+                if (TokenBeginIndex == TokenList.Instance.Count)
+                {
+                    return Token.Text.Length;
+                }
+                if(TokenEndIndex == 0)
+                {
+                    return 0;
+                }
+
+                Token token = TokenList.Instance[TokenEndIndex-1];
+                return token.TextIndex + token.TextLength; 
             }
         }
         public int TextLength
         {
-            get { return TextEndIndex - TextIndex; }
+            get
+            {
+                // 文字位置が最終トークンの終端から始まる時
+                if (TokenBeginIndex == TokenList.Instance.Count)
+                {
+                    return 0;
+                }
+
+                if(TokenCount == 0)
+                {
+                    return 0;
+                }
+
+                int totleLength = 0;
+
+                for(int i = TokenBeginIndex; i < TokenEndIndex; i++)
+                {
+                    totleLength += TokenList.Instance[i].TextLength;
+                }
+
+                return totleLength;
+            }
         }
 
         public string Name { get; protected set; }
+        public Match(Matcher generator, int tokenIndex, string name = "")
+            : this()
+        {
+
+            Generator = generator;
+            TokenBeginIndex = tokenIndex;
+            TokenEndIndex = tokenIndex;
+            Name = (name != "") ? name : generator.Name;
+
+            if (TokenCount < 0) { var temp = ""; }
+        }
 
         public Match(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name = "")
             : this()
@@ -91,33 +144,50 @@ namespace Parspell
             : this()
         {
             Generator = generator;
-            TokenBeginIndex = -1;
-            Match? lastMatch = null;
-            foreach (var match in matches)
-            {
-                lastMatch = match;
-                // 最初のマッチのトークンインデックスは取得しておく
-                if (TokenBeginIndex == -1) { TokenBeginIndex = match.TokenBeginIndex; }
-            }
-            if(lastMatch != null)
-            {
-                TokenEndIndex = lastMatch.TokenEndIndex;
-            }
+
+            GetTokenRange(matches, out int begin, out int end);
+            TokenBeginIndex = begin;
+            TokenEndIndex = end;
+
             Name = (name != "") ? name : generator.Name;
 
             if (TokenCount < 0) { var temp = ""; }
         }
 
+        private static void GetTokenRange(IEnumerable<Match> matches, out int tokenBeginIndex, out int tokenEndIndex)
+        {
+            tokenBeginIndex = -1;
+            Match? lastMatch = null;
+            foreach (var match in matches)
+            {
+                lastMatch = match;
+                // 最初のマッチのトークンインデックスは取得しておく
+                if (tokenBeginIndex == -1) { tokenBeginIndex = match.TokenBeginIndex; }
+            }
+            if (lastMatch != null)
+            {
+                tokenEndIndex = lastMatch.TokenEndIndex;
+            }
+            else
+            {
+                tokenEndIndex = tokenBeginIndex;
+            }
+        }
+
         private Match(Match org, string name)
             : this(org.Generator, org, name) { }
 
-        public virtual bool IsSuccess
-        { get { return true; } }
 
+        public abstract bool IsSuccess { get;}
 
         public override string ToString()
         {
-            return Token.Text.Substring(TextIndex, TextLength);
+            var str = Token.Text.Substring(TextIndex, TextLength);
+
+            str = str.Replace("\r", "\\r");
+            str = str.Replace("\n", "\\n");
+
+            return str;
         }
 
         /// <summary>
@@ -134,6 +204,11 @@ namespace Parspell
         /// <param name="nest"></param>
         public virtual void DebugPrint(string nest = "")
         {
+            if (UniqID == "P32")
+            {
+                var temp = "";
+            }
+
             var typeName = Generator.GetType().Name;
             var matchName = typeName.Substring(0, typeName.Length - "Matcher".Length);
 
@@ -144,37 +219,65 @@ namespace Parspell
             }
 
             //Debug.WriteLine($"{nest}{Detail} {matchName}{name}");
-            Debug.WriteLine($"{nest}{this} {name}");
+            Debug.WriteLine($"{nest}{this} {name} [{TextIndex}-{TextEndIndex}]:{UniqID} {Generator.UniqID}");
         }
 
         public virtual Match this[string name]
+        {get { throw new Exception(); }
+        }
+    }
+
+    public abstract class NotableMatch : Match
+    {
+        public abstract Match GetNot(Matcher generator);
+
+        public NotableMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
+        public NotableMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name = "")
+            : base(generator, tokenIndex, tokenEndIndex, name) { }
+        public NotableMatch(Matcher generator, Match match, string name = "")
+            : base(generator, match, name) { }
+
+    }
+
+    /// <summary>
+    /// 成功マッチ
+    /// </summary>
+    public class SuccessMatch : NotableMatch
+    {
+        public SuccessMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
+        public SuccessMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name = "")
+            : base(generator, tokenIndex, tokenEndIndex, name) { }
+        public SuccessMatch(Matcher generator, Match match, string name = "")
+            : base(generator, match, name) { }
+
+        public override bool IsSuccess
+        { get { return true; } }
+
+
+        
+        public override Match this[string name]
         {
-            get { return new Match(this, name); }
+            get { return new SuccessMatch(Generator, TokenBeginIndex, TokenCount, name); }
+        }
+        public override Match GetNot(Matcher generator)
+        {
+            return new FailMatch(generator, this);
         }
     }
 
     /// <summary>
     /// 失敗マッチ
     /// </summary>
-    public class FailMatch : Match
+    public class FailMatch : NotableMatch
     {
-        public FailMatch(Matcher generator, int tokenBeginIndex)
-            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
-        public FailMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
-            : base(generator, tokenBeginIndex, tokenEndIndex) { }
-        public FailMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name)
+        public FailMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
+        public FailMatch(Matcher generator, int tokenIndex, int tokenEndIndex, string name = "")
             : base(generator, tokenIndex, tokenEndIndex, name) { }
         public FailMatch(Matcher generator, Match match, string name = "")
             : base(generator, match, name) { }
-
-        public override int TextIndex
-        { get { return -1; } }
-
-        public override int TextEndIndex
-        { get { return -1; } }
-
-        public override int TokenCount
-        { get { return 0; } }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -193,8 +296,23 @@ namespace Parspell
         {
             get { return new FailMatch(Generator,TokenBeginIndex,TokenCount, name); }
         }
+        public override Match GetNot(Matcher generator)
+        {
+            return new SuccessMatch(generator, this);
+        }
     }
 
+    /// <summary>
+    /// 範囲外マッチ
+    /// </summary>
+    public class RangeOutMatch : Match
+    {
+        public RangeOutMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
+
+        public override bool IsSuccess
+        { get { return false; } }
+    }
 
     /// <summary>
     /// 再帰マッチャーが無限再帰に陥った事を検知するマッチ
@@ -213,8 +331,8 @@ namespace Parspell
     /// </remarks>
     public class SearchingMatch : Match
     {
-        public SearchingMatch(Matcher generator, int tokenIndex)
-            : base(generator, tokenIndex, tokenIndex) { }
+        public SearchingMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -228,7 +346,6 @@ namespace Parspell
         {
             return "(Searching)";
         }
-
     }
 
     /// <summary>
@@ -236,8 +353,8 @@ namespace Parspell
     /// </summary>
     public class InfiniteRecursionMatch : Match
     {
-        public InfiniteRecursionMatch(Matcher generator, int tokenBeginIndex)
-            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
+        public InfiniteRecursionMatch(Matcher generator, int tokenIndex, string name = "")
+            : base(generator, tokenIndex, name) { }
 
         public override bool IsSuccess
         { get { return false; } }
@@ -265,32 +382,24 @@ namespace Parspell
 
         public IList<Match> Inners { get { return _inners; } }
 
-        public WrapMatch(Matcher generator, IEnumerable<Match> inners)
-            : base(generator, inners)
+        public WrapMatch(Matcher generator, IEnumerable<Match> inners, string name = "")
+            : base(generator, inners, name)
         {
+            if(inners is Match[] array)
+            {
+                _inners = new Match[array.Length];
+                array.CopyTo(_inners, 0);
+            }
             _inners = inners.ToList().ToArray();
         }
-        public WrapMatch(Matcher generator, Match inner)
-            : base(generator, inner)
+        public WrapMatch(Matcher generator, Match inner, string name = "")
+            : base(generator, inner, name)
         {
             _inners = new Match[] { inner };
         }
 
-        public WrapMatch(Matcher generator, params Match[] inners)
-            : base(generator, inners)
-        {
-            _inners = inners;
-        }
-        public WrapMatch(Matcher generator, Match[] inners, string name)
-            : base(generator, inners,name)
-        {
-            _inners = inners;
-        }
-        public WrapMatch(Matcher generator, Match inner, string name)
-            : base(generator, inner.TokenBeginIndex, inner.TokenEndIndex, name)
-        {
-            _inners = new Match[] { inner };
-        }
+        public override bool IsSuccess
+        { get { return true; } }
 
         public override void DebugPrint(string nest = "")
         {
@@ -309,10 +418,10 @@ namespace Parspell
     /// <summary>
     /// 構文エラーマッチ
     /// </summary>
-    public class ErrorMatch : WrapMatch
+    public class SyntaxErrorMatch : WrapMatch
     {
-        public ErrorMatch(Matcher generator, Match inner)
-            : base(generator, inner) { }
+        public SyntaxErrorMatch(Matcher generator, Match inner, string name = "")
+            : base(generator, inner, name) { }
     }
 
     /// <summary>
@@ -326,8 +435,8 @@ namespace Parspell
         public Match Right { get; private set; }
 
 
-        public OperationMatch(Matcher generator, Match left, Match @operator, Match right)
-            :base(generator,new Match[] {left,@operator,right })
+        public OperationMatch(Matcher generator, Match left, Match @operator, Match right, string name = "")
+            :base(generator,new Match[] {left,@operator,right }, name)
         {
             Operator = @operator;
             Left = left;
@@ -338,6 +447,8 @@ namespace Parspell
         {
             Name = name;
         }
+        public override bool IsSuccess
+        { get { return true; } }
 
         public override void DebugPrint(string nest = "")
         {
@@ -361,18 +472,12 @@ namespace Parspell
     /// </remarks>
     public class BlankMatch : Match
     {
-        public BlankMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex)
-            : base(generator, tokenBeginIndex, tokenEndIndex) { }
+        public BlankMatch(Matcher generator, int tokenBeginIndex, int tokenEndIndex, string name = "")
+            : base(generator, tokenBeginIndex, tokenEndIndex, name) { }
+
+        public override bool IsSuccess
+        { get { return true; } }
+
     }
 
-    /// <summary>
-    /// 先読みマッチ
-    /// </summary>
-    public class LookaheadMatch : Match
-    {
-        public LookaheadMatch(Matcher generator, int tokenBeginIndex)
-            : base(generator, tokenBeginIndex, tokenBeginIndex) { }
-        public LookaheadMatch(Matcher generator, int tokenBeginIndex, string name)
-            : base(generator, tokenBeginIndex, tokenBeginIndex,name) { }
-    }
 }
